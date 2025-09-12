@@ -4,11 +4,14 @@ import 'package:md_codebar_scanner/utils/colors.dart';
 import 'package:md_codebar_scanner/utils/constants.dart';
 
 class ConfigScreen extends StatefulWidget {
+  final VoidCallback? onConfigSaved;
+
+  const ConfigScreen({super.key, this.onConfigSaved});
   @override
-  _ConfigScreenState createState() => _ConfigScreenState();
+  ConfigScreenState createState() => ConfigScreenState();
 }
 
-class _ConfigScreenState extends State<ConfigScreen> {
+class ConfigScreenState extends State<ConfigScreen> {
   final TextEditingController _sucursalController = TextEditingController();
   final TextEditingController _servidorController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -35,6 +38,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+
       setState(() {
         _sucursalController.text =
             prefs.getString(AppConstants.prefsSucursal) ?? '';
@@ -76,10 +81,14 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
       _showSnackBar(AppConstants.successConfigSaved, AppColors.success);
 
-      // Regresar a la pantalla anterior después de guardar
+      if (widget.onConfigSaved != null) {
+        widget.onConfigSaved!(); // ← Ejecuta inmediatamente al guardar
+      }
+      // Regresar a la pantalla main screen después de guardar
       Future.delayed(Duration(seconds: 1), () {
         if (mounted) {
-          Navigator.pop(context);
+          //Navigator.pop(context);
+          Navigator.of(context).popUntil((route) => route.isFirst);
         }
       });
     } catch (e) {
@@ -122,10 +131,10 @@ class _ConfigScreenState extends State<ConfigScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancelar'),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.textSecondary,
               ),
+              child: Text('Cancelar'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -133,11 +142,11 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 _sucursalController.clear();
                 _servidorController.clear();
               },
-              child: Text('Limpiar'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.warning,
                 foregroundColor: Colors.white,
               ),
+              child: Text('Limpiar'),
             ),
           ],
         );
@@ -162,7 +171,11 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
     // Validación básica de URL
     final urlPattern = RegExp(
-      r'^(https?:\/\/)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(:[0-9]+)?(\/.*)?$',
+      r'^(https?:\/\/)?'
+      r'((([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,})'
+      r'|((\d{1,3}\.){3}\d{1,3}))'
+      r'(:\d+)?'
+      r'(\/[^\s]*)?$',
       caseSensitive: false,
     );
 
@@ -259,7 +272,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                               Text(
                                 'Configura los parámetros necesarios para el funcionamiento de la aplicación',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: AppConstants.subtitleFontSize,
                                   color: AppColors.textSecondary,
                                   height: 1.4,
                                 ),
@@ -306,7 +319,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                               filled: true,
                               fillColor: Colors.white,
                               labelText: 'Nombre de la Sucursal',
-                              hintText: 'Ej: Sucursal Centro',
+                              hintText: 'Ej: S11',
                               prefixIcon: Icon(
                                 Icons.store,
                                 color: AppColors.primary,
@@ -358,7 +371,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                               filled: true,
                               fillColor: Colors.white,
                               labelText: 'Servidor API',
-                              hintText: 'https://api.ejemplo.com',
+                              hintText: 'https://server.ejemplo.com/api',
                               prefixIcon: Icon(
                                 Icons.cloud,
                                 color: AppColors.primary,
@@ -403,7 +416,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                                   Text(
                                     'Información Importante',
                                     style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: AppConstants.titleFontSize,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.info,
                                     ),
@@ -416,7 +429,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                                 '• El servidor API debe ser accesible desde esta red\n'
                                 '• Estos datos se utilizarán para conectar con el sistema central',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: AppConstants.subtitleFontSize,
                                   color: AppColors.info,
                                   height: 1.4,
                                 ),

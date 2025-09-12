@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:md_codebar_scanner/models/product_model.dart';
+import 'package:md_codebar_scanner/screens/bluetooth_printer_screen.dart';
+import 'package:md_codebar_scanner/services/printer_service.dart';
 import 'package:md_codebar_scanner/utils/colors.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final Product product;
 
-  const ProductDetailScreen({Key? key, required this.product})
-    : super(key: key);
+  const ProductDetailScreen({super.key, required this.product});
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +84,7 @@ class ProductDetailScreen extends StatelessWidget {
                                       ),
                                       SizedBox(height: 4),
                                       Text(
-                                        product.productName,
+                                        product.itemName,
                                         style: TextStyle(
                                           fontSize: 22,
                                           fontWeight: FontWeight.bold,
@@ -130,8 +131,13 @@ class ProductDetailScreen extends StatelessWidget {
                             ),
                             SizedBox(height: 16),
                             _buildDetailRow(
+                              'UPC:',
+                              product.codeBar.toString(),
+                              Icons.qr_code_2,
+                            ),
+                            _buildDetailRow(
                               'SKU:',
-                              product.productSKU.toString(),
+                              product.itemCode.toString(),
                               Icons.qr_code_2,
                             ),
                             _buildDetailRow(
@@ -141,14 +147,11 @@ class ProductDetailScreen extends StatelessWidget {
                             ),
                             _buildDetailRow(
                               'Impuesto:',
-                              '${product.tax.toString()}%',
+                              '${product.taxRate.toString()}%',
                               Icons.receipt_long,
                             ),
-                            _buildDetailRow(
-                              'Descuento:',
-                              '${product.discount.toString()}%',
-                              Icons.local_offer,
-                            ),
+
+                            ...[..._buildDiscountLabel()],
                           ],
                         ),
                       ),
@@ -278,25 +281,59 @@ class ProductDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPriceCalculation() {
-    final double basePrice = product.price.toDouble();
-    final int discount = product.discount;
-    final int tax = product.tax;
+  Widget _buildRow(String label, IconData icon) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.primary),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    final double discountAmount = basePrice * (discount / 100);
+  Widget _buildPriceCalculation() {
+    final double basePrice = product.price;
+
+    //product.discount;
+    final double tax = product.taxRate;
+
+    double discountAmount = 0;
+    double newPrice = product.promotion?.price ?? 0;
+
+    if (product.promotion?.price != null && product.promotion!.price > 0) {
+      discountAmount = product.price - product.promotion!.price;
+    }
+    //final double priceAfterDiscount = basePrice - discountAmount;
     final double priceAfterDiscount = basePrice - discountAmount;
     final double taxAmount = priceAfterDiscount * (tax / 100);
     final double finalPrice = priceAfterDiscount + taxAmount;
 
+    double discount = 0;
+    String tipoPromocion = product.promotion?.promotionType ?? 'NA';
+    if (tipoPromocion == 'PU' || tipoPromocion == 'PV') {
+      discount = 100 - (newPrice / basePrice * 100);
+    }
     return Column(
       children: [
         _buildCalculationRow(
           'Precio base:',
           '\$${basePrice.toStringAsFixed(2)}',
         ),
-        if (discount > 0) ...[
+        if (discount > 0.0) ...[
           _buildCalculationRow(
-            'Descuento ($discount%):',
+            'Descuento (${discount.toStringAsFixed(2)}%):',
             '-\$${discountAmount.toStringAsFixed(2)}',
             isDiscount: true,
           ),
@@ -373,7 +410,7 @@ class ProductDetailScreen extends StatelessWidget {
                     Icon(Icons.print, color: AppColors.primary, size: 24),
                     SizedBox(width: 12),
                     Text(
-                      'Vista Previa de Impresión',
+                      'Imprimir Etiqueta',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -383,6 +420,56 @@ class ProductDetailScreen extends StatelessWidget {
                   ],
                 ),
                 SizedBox(height: 20),
+
+                // Estado de la impresora
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: PrinterService.isConnected
+                        ? AppColors.successLight
+                        : AppColors.warningLight,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: PrinterService.isConnected
+                          ? AppColors.success
+                          : AppColors.warning,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        PrinterService.isConnected
+                            ? Icons.bluetooth_connected
+                            : Icons.bluetooth_disabled,
+                        color: PrinterService.isConnected
+                            ? AppColors.success
+                            : AppColors.warning,
+                        size: 20,
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          PrinterService.isConnected
+                              ? 'Conectado: ${PrinterService.connectedDevice?.name}'
+                              : 'Sin conexión a impresora',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: PrinterService.isConnected
+                                ? AppColors.success
+                                : AppColors.warning,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 20),
+
+                // Vista previa de la etiqueta
                 Container(
                   width: 250,
                   padding: EdgeInsets.all(16),
@@ -396,7 +483,7 @@ class ProductDetailScreen extends StatelessWidget {
                     children: [
                       // Título del recibo
                       Text(
-                        product.productName,
+                        product.itemName,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -426,7 +513,7 @@ class ProductDetailScreen extends StatelessWidget {
                       SizedBox(height: 8),
                       Center(
                         child: Text(
-                          product.productSKU,
+                          product.codeBar,
                           style: TextStyle(
                             fontSize: 12,
                             fontFamily: 'monospace',
@@ -438,7 +525,7 @@ class ProductDetailScreen extends StatelessWidget {
                       // Precio
                       Center(
                         child: Text(
-                          '\$${product.price.toStringAsFixed(2)}',
+                          '\$${product.priceWithTax.toStringAsFixed(2)}',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -449,20 +536,39 @@ class ProductDetailScreen extends StatelessWidget {
 
                       // Información adicional
                       Text(
-                        'Impuesto: ${product.tax}%',
+                        'Impuesto: ${product.taxRate}%',
                         style: TextStyle(fontSize: 10),
                       ),
-                      if ((product.discount) > 0)
+                      if (0 > 0)
                         Text(
-                          'Descuento: ${product.discount}%',
+                          'Descuento: ${0}%',
                           style: TextStyle(fontSize: 10),
                         ),
                     ],
                   ),
                 ),
                 SizedBox(height: 24),
+
+                // Botones
                 Row(
                   children: [
+                    if (!PrinterService.isConnected) ...[
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            _showBluetoothSettings(context);
+                          },
+                          icon: Icon(Icons.bluetooth),
+                          label: Text('Configurar'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: BorderSide(color: AppColors.primary),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                    ],
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(),
@@ -476,23 +582,14 @@ class ProductDetailScreen extends StatelessWidget {
                     SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Imprimiendo recibo...'),
-                              backgroundColor: AppColors.success,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          );
-                        },
+                        onPressed: PrinterService.isConnected
+                            ? () => _printLabel(context)
+                            : null,
                         child: Text('Imprimir'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
+                          disabledBackgroundColor: AppColors.textTertiary,
                         ),
                       ),
                     ),
@@ -504,5 +601,168 @@ class ProductDetailScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _showBluetoothSettings(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => BluetoothPrinterScreen()),
+    );
+
+    // Si se conectó exitosamente, mostrar el dialog de impresión nuevamente
+    if (result == true) {
+      _showPrintPreview(context);
+    }
+  }
+
+  void _printLabel(BuildContext context) async {
+    Navigator.of(context).pop(); // Cerrar el dialog de vista previa
+
+    // Mostrar indicador de impresión consistente con el resto de la app
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Imprimiendo etiqueta...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      // Verificar conexión antes de imprimir
+      if (!PrinterService.isConnected) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('La impresora se ha desconectado'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Imprimir la etiqueta del producto
+      final result = await PrinterService.printProductLabel(product);
+
+      Navigator.of(context).pop(); // Cerrar dialog de progreso
+
+      if (result['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Etiqueta impresa correctamente'),
+              ],
+            ),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(child: Text(result['message'] ?? 'Error al imprimir')),
+              ],
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      Navigator.of(context).pop(); // Cerrar dialog de progreso
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(child: Text('Error al imprimir: $e')),
+            ],
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+  }
+
+  List<Widget> _buildDiscountLabel() {
+    final double priceWithTax = product.priceWithTax;
+    var promotionType = product.promotion?.promotionType ?? 'NA';
+
+    switch (promotionType) {
+      case 'DV':
+        int qty = product.promotion?.discountQty ?? 0;
+        double finalPrice = qty * priceWithTax;
+        double discountRate = product.promotion?.discountRate ?? 0;
+        double precioDV = finalPrice - (finalPrice * discountRate / 100);
+        return [
+          _buildDetailRow(
+            'Descuento por volumen:',
+            '${qty} X \$${precioDV.toStringAsFixed(2)}',
+            Icons.local_offer,
+          ),
+        ];
+      case 'AB':
+        return [
+          _buildDetailRow(
+            'Promoción:',
+            '${product.promotion!.itemsToGetCount.toInt()} X ${product.promotion!.itemsToPayCount.toInt()}',
+            Icons.local_offer,
+          ),
+        ];
+      case 'PU':
+        return [_buildRow('Descuento por Precio Único', Icons.local_offer)];
+      case 'PV':
+        return [
+          _buildRow('Descuento por Politica de Venta', Icons.local_offer),
+        ];
+      default:
+        return [Container()];
+    }
   }
 }

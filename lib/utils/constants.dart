@@ -1,6 +1,6 @@
 class AppConstants {
   // Autenticación
-  static const String correctPassword = "password?facil";
+  static const String correctPassword = "12345";
 
   // Claves de SharedPreferences
   static const String prefsSucursal = 'sucursal';
@@ -41,4 +41,15 @@ class AppConstants {
   // Configuraciones de impresión
   static const String printCompanyName = 'Mi Empresa';
   static const String printFooter = 'Gracias por su compra';
+  static const String printerModel = 'TSC Alpha-3RB';
+  static const String printerType = 'Térmica de etiquetas';
+
+  // Configuraciones específicas de TSC
+  static const double labelWidth = 58.0; // mm
+  static const double labelHeight = 40.0; // mm
+  static const double labelGap = 2.0; // mm
+
+  //Configuraciones font size tool tips
+  static const double titleFontSize = 16;
+  static const double subtitleFontSize = 14;
 }

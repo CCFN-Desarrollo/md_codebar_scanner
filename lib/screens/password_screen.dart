@@ -4,6 +4,10 @@ import 'package:md_codebar_scanner/utils/colors.dart';
 import 'package:md_codebar_scanner/utils/constants.dart';
 
 class PasswordScreen extends StatefulWidget {
+  final VoidCallback? onConfigSaved;
+
+  const PasswordScreen({super.key, this.onConfigSaved});
+
   @override
   _PasswordScreenState createState() => _PasswordScreenState();
 }
@@ -26,7 +30,10 @@ class _PasswordScreenState extends State<PasswordScreen> {
     if (_passwordController.text == AppConstants.correctPassword) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => ConfigScreen()),
+        MaterialPageRoute(
+          builder: (context) =>
+              ConfigScreen(onConfigSaved: widget.onConfigSaved),
+        ),
       );
     } else {
       setState(() {

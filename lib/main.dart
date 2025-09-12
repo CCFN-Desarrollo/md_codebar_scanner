@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:md_codebar_scanner/screens/main_screens.dart';
+import 'package:md_codebar_scanner/screens/main_screen.dart';
 import 'package:md_codebar_scanner/theme/app_theme.dart';
 
 void main() {
@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Barcode Scanner',
+      title: 'Escanner de Código de Barras',
       theme: AppTheme.lightTheme,
       home: MainScreen(),
     );
