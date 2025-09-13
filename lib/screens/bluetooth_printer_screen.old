@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../services/printer_service.dart';
 import '../utils/colors.dart';
 
@@ -15,15 +15,14 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
   String _connectionStatus = '';
   bool _bluetoothAvailable = true;
   bool _bluetoothEnabled = false;
-  bool _showAllDevices = false;
 
   @override
   void initState() {
     super.initState();
-    _checkBluetoothAndLoadDevices();
+    _checkBluetoothAndScan();
   }
 
-  Future<void> _checkBluetoothAndLoadDevices() async {
+  Future<void> _checkBluetoothAndScan() async {
     // Verificar estado de Bluetooth
     final bluetoothStatus = await PrinterService.checkBluetoothStatus();
 
@@ -34,14 +33,14 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
       });
 
       if (_bluetoothAvailable && _bluetoothEnabled) {
-        await _loadPairedDevices();
+        await _scanForDevices();
       } else {
         _showSnackBar(bluetoothStatus['message'], AppColors.warning);
       }
     }
   }
 
-  Future<void> _loadPairedDevices() async {
+  Future<void> _scanForDevices() async {
     if (!_bluetoothAvailable || !_bluetoothEnabled) {
       _showSnackBar(
         'Bluetooth no está disponible o está apagado',
@@ -56,57 +55,20 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
     });
 
     try {
-      List<BluetoothDevice> devices;
-
-      if (_showAllDevices) {
-        devices = await _getAllPairedDevices();
-      } else {
-        devices = await PrinterService.getPairedDevices();
-      }
-
+      final devices = await PrinterService.scanForDevices();
       if (mounted) {
         setState(() {
           _devices = devices;
           _isScanning = false;
         });
-
-        if (devices.isEmpty) {
-          _showSnackBar(
-            'No se encontraron dispositivos emparejados',
-            AppColors.info,
-          );
-        }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isScanning = false;
         });
-        _showSnackBar('Error al cargar dispositivos: $e', AppColors.error);
+        _showSnackBar('Error al escanear dispositivos: $e', AppColors.error);
       }
-    }
-  }
-
-  Future<List<BluetoothDevice>> _getAllPairedDevices() async {
-    try {
-      List<BluetoothDevice> devices = await FlutterBluetoothSerial.instance
-          .getBondedDevices();
-
-      print('🔍 TODOS LOS DISPOSITIVOS EMPAREJADOS:');
-      for (var device in devices) {
-        print('📱 "${device.name}" | ${device.address} | Tipo: ${device.type}');
-      }
-
-      return devices.where((device) {
-        return (device.name?.isNotEmpty ?? false);
-      }).toList()..sort(
-        (a, b) => (a.name ?? '').toLowerCase().compareTo(
-          (b.name ?? '').toLowerCase(),
-        ),
-      );
-    } catch (e) {
-      print('❌ Error obteniendo todos los dispositivos: $e');
-      return [];
     }
   }
 
@@ -127,9 +89,10 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
 
         if (result['success']) {
           _showSnackBar('Conectado exitosamente', AppColors.success);
+          // Pequeño delay para mostrar el mensaje antes de regresar
           await Future.delayed(Duration(seconds: 1));
           if (mounted) {
-            Navigator.pop(context, true);
+            Navigator.pop(context, true); // Regresar con éxito
           }
         } else {
           _showSnackBar(result['message'], AppColors.error);
@@ -191,48 +154,10 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
         centerTitle: true,
         elevation: 0,
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'show_all') {
-                setState(() {
-                  _showAllDevices = !_showAllDevices;
-                });
-                _loadPairedDevices();
-              } else if (value == 'refresh') {
-                _checkBluetoothAndLoadDevices();
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'show_all',
-                child: Row(
-                  children: [
-                    Icon(
-                      _showAllDevices
-                          ? Icons.filter_list_off
-                          : Icons.filter_list,
-                      size: 20,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      _showAllDevices
-                          ? 'Solo impresoras'
-                          : 'Todos los dispositivos',
-                    ),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'refresh',
-                child: Row(
-                  children: [
-                    Icon(Icons.refresh, size: 20),
-                    SizedBox(width: 8),
-                    Text('Actualizar lista'),
-                  ],
-                ),
-              ),
-            ],
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _isScanning ? null : _checkBluetoothAndScan,
+            tooltip: 'Actualizar lista',
           ),
         ],
       ),
@@ -287,7 +212,7 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
                     if (!_bluetoothEnabled) ...[
                       SizedBox(height: 12),
                       ElevatedButton.icon(
-                        onPressed: _checkBluetoothAndLoadDevices,
+                        onPressed: _checkBluetoothAndScan,
                         icon: Icon(Icons.refresh),
                         label: Text('Verificar de nuevo'),
                         style: ElevatedButton.styleFrom(
@@ -410,7 +335,7 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
                           ),
                           SizedBox(height: 16),
                           Text(
-                            'Cargando dispositivos emparejados...',
+                            'Buscando dispositivos Bluetooth...',
                             style: TextStyle(
                               fontSize: 16,
                               color: AppColors.textSecondary,
@@ -418,7 +343,7 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'Esto puede tomar unos segundos',
+                            'Puede tomar unos segundos',
                             style: TextStyle(
                               fontSize: 14,
                               color: AppColors.textTertiary,
@@ -433,13 +358,13 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.bluetooth_searching,
+                            Icons.search_off,
                             size: 64,
                             color: AppColors.textTertiary,
                           ),
                           SizedBox(height: 16),
                           Text(
-                            'No hay dispositivos emparejados',
+                            'No se encontraron dispositivos',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
@@ -448,7 +373,7 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'Empareja tu TSC Alpha-3RB desde\nla configuración de Bluetooth de Android',
+                            'Asegúrate de que la impresora esté encendida\ny en modo de emparejamiento',
                             style: TextStyle(
                               fontSize: 14,
                               color: AppColors.textTertiary,
@@ -458,9 +383,9 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
                           ),
                           SizedBox(height: 24),
                           ElevatedButton.icon(
-                            onPressed: _loadPairedDevices,
+                            onPressed: _scanForDevices,
                             icon: Icon(Icons.refresh),
-                            label: Text('Actualizar lista'),
+                            label: Text('Buscar de nuevo'),
                           ),
                         ],
                       ),
@@ -471,35 +396,16 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
                       itemBuilder: (context, index) {
                         final device = _devices[index];
                         final isConnected =
-                            PrinterService.connectedDevice?.address ==
-                            device.address;
-                        final deviceName = device.name?.isNotEmpty == true
-                            ? device.name!
+                            PrinterService.connectedDevice?.id == device.id;
+                        final deviceName = device.name.isNotEmpty
+                            ? device.name
                             : 'Dispositivo sin nombre';
-
-                        // Detectar si podría ser una impresora TSC
-                        final nameL = deviceName.toLowerCase();
-                        final addressL = device.address.toLowerCase();
-                        final isPossibleTSC =
-                            addressL.contains('00:19:0e:a6:04:5d') ||
-                            nameL.contains('bt-spp') ||
-                            nameL.contains('tsc') ||
-                            nameL.contains('alpha') ||
-                            nameL.contains('3rb') ||
-                            nameL.contains('thermal') ||
-                            nameL.contains('print');
 
                         return Card(
                           margin: EdgeInsets.only(bottom: 12),
-                          elevation: isPossibleTSC ? 4 : 2,
+                          elevation: 2,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            side: isPossibleTSC
-                                ? BorderSide(
-                                    color: AppColors.primary.withOpacity(0.3),
-                                    width: 1,
-                                  )
-                                : BorderSide.none,
                           ),
                           child: ListTile(
                             contentPadding: EdgeInsets.all(16),
@@ -508,89 +414,57 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
                               decoration: BoxDecoration(
                                 color: isConnected
                                     ? AppColors.successLight
-                                    : isPossibleTSC
-                                    ? AppColors.primary.withOpacity(0.1)
-                                    : AppColors.textSecondary.withOpacity(0.1),
+                                    : AppColors.primaryLight,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
                                 isConnected
                                     ? Icons.bluetooth_connected
-                                    : isPossibleTSC
+                                    : deviceName.toLowerCase().contains(
+                                            'tsc',
+                                          ) ||
+                                          deviceName.toLowerCase().contains(
+                                            'print',
+                                          )
                                     ? Icons.print
                                     : Icons.bluetooth,
                                 color: isConnected
                                     ? AppColors.success
-                                    : isPossibleTSC
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary,
+                                    : AppColors.primary,
                                 size: 24,
                               ),
                             ),
-                            title: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    deviceName,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                if (isPossibleTSC)
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      addressL.contains('00:19:0e:a6:04:5d')
-                                          ? 'TU TSC'
-                                          : 'POSIBLE TSC',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                              ],
+                            title: Text(
+                              deviceName,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 SizedBox(height: 4),
                                 Text(
-                                  'MAC: ${device.address}',
+                                  'ID: ${device.id.toString()}',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     fontFamily: 'monospace',
                                     color: AppColors.textSecondary,
                                   ),
                                 ),
                                 SizedBox(height: 2),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.link,
-                                      size: 12,
-                                      color: AppColors.success,
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Emparejado',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.success,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
+                                Text(
+                                  device.isConnected
+                                      ? 'Conectado'
+                                      : 'Disponible',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: device.isConnected
+                                        ? AppColors.success
+                                        : AppColors.textTertiary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                                 if (isConnected) ...[
                                   SizedBox(height: 4),
@@ -648,6 +522,7 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
 
   @override
   void dispose() {
+    // Limpiar recursos si es necesario
     super.dispose();
   }
 }

@@ -25,7 +25,6 @@ class _ScannerScreenState extends State<ScannerScreen>
   bool _showNotFound = false;
   bool _isScanning = false;
   bool _showCamera = false;
-  bool _hasPermission = false;
 
   MobileScannerController? _scannerController;
   late AnimationController _scanAnimationController;
@@ -92,7 +91,6 @@ class _ScannerScreenState extends State<ScannerScreen>
 
       if (mounted) {
         setState(() {
-          _hasPermission = true;
           _showCamera = true;
           _isLoading = false;
           _isScanning = true;
@@ -643,49 +641,50 @@ class _ScannerScreenState extends State<ScannerScreen>
             SizedBox(height: 24),
 
             // Información de códigos de prueba
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.info.withOpacity(0.2),
-                  width: 1,
+            if (false)
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.info.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.info.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.lightbulb_outline,
+                          color: AppColors.info,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Códigos de prueba:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.info,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '12345, 67890, 11111, 22222, 33333',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.info,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.lightbulb_outline,
-                        color: AppColors.info,
-                        size: 20,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Códigos de prueba:',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.info,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '12345, 67890, 11111, 22222, 33333',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.info,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ],
       ),

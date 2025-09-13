@@ -31,7 +31,9 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.5.3
-  flutter_blue_plus: ^1.35.10
+  #flutter_blue_plus: ^1.35.10
+  flutter_bluetooth_serial: ^0.4.0
+  #bluetooth_classic: ^0.0.4
   permission_handler: ^12.0.1
   esc_pos_utils: ^1.1.0
   http: ^1.5.0

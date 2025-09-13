@@ -583,7 +583,7 @@ class ProductDetailScreen extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: PrinterService.isConnected
-                            ? () => _printLabel(context)
+                            ? () => _showPrintLabel(context)
                             : null,
                         child: Text('Imprimir'),
                         style: ElevatedButton.styleFrom(
@@ -615,7 +615,7 @@ class ProductDetailScreen extends StatelessWidget {
     }
   }
 
-  void _printLabel(BuildContext context) async {
+  void _showPrintLabel(BuildContext context) async {
     Navigator.of(context).pop(); // Cerrar el dialog de vista previa
 
     // Mostrar indicador de impresión consistente con el resto de la app

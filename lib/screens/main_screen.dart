@@ -23,6 +23,13 @@ class _MainScreenState extends State<MainScreen> {
     _checkConfiguration(); // ← Llamada automática al iniciar
   }
 
+  void _navigateToScanner() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ScannerScreen()),
+    );
+  }
+
   // Método principal de verificación
   Future<void> _checkConfiguration({bool showDialogIfNeeded = true}) async {
     /* final prefs = await SharedPreferences.getInstance();
@@ -47,13 +54,11 @@ class _MainScreenState extends State<MainScreen> {
           _isCheckingConfig = false; // Termina la verificación
         });
 
-        // Si no hay configuración válida, mostrar dialog después de delay
-        /* if (!hasValidConfig && showDialogIfNeeded) {
-          await Future.delayed(Duration(milliseconds: 1500));
-          if (mounted) {
-            _showConfigurationRequired(); // ← Mostrar dialog de configuración requerida
-          }
-        }*/
+        if (hasValidConfig) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _navigateToScanner();
+          });
+        }
       }
     } catch (e) {
       // Manejo de errores
@@ -371,40 +376,6 @@ class _MainScreenState extends State<MainScreen> {
                       ),
                     ),
                   ),
-
-                  SizedBox(height: 20),
-
-                  // Botón secundario para entrada manual
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ScannerScreen(showManualEntry: true),
-                          ),
-                        );
-                      },
-                      icon: Icon(Icons.keyboard, size: 20),
-                      label: Text(
-                        'Entrada Manual',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: BorderSide(color: AppColors.primary, width: 2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                      ),
-                    ),
-                  ),
                 ] else ...[
                   // Botón para ir a configuración
                   SizedBox(
@@ -417,7 +388,7 @@ class _MainScreenState extends State<MainScreen> {
                           MaterialPageRoute(
                             builder: (context) => PasswordScreen(
                               onConfigSaved: () {
-                                _checkConfiguration(); // ← Actualiza MainScreen inmediatamente
+                                _checkConfiguration(); // Actualiza MainScreen inmediatamente
                               },
                             ),
                           ),
@@ -452,64 +423,69 @@ class _MainScreenState extends State<MainScreen> {
           SizedBox(height: 60),
 
           // Información adicional
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 40),
-            padding: EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: _hasValidConfig ? Colors.grey[50] : AppColors.warningLight,
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(
+          if (!_hasValidConfig)
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 40),
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
                 color: _hasValidConfig
-                    ? Colors.grey[200]!
-                    : AppColors.warning.withOpacity(0.3),
-                width: 1,
+                    ? Colors.grey[50]
+                    : AppColors.warningLight,
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: _hasValidConfig
+                      ? Colors.grey[200]!
+                      : AppColors.warning.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _hasValidConfig
+                        ? Icons.info_outline
+                        : Icons.warning_amber_outlined,
+                    color: _hasValidConfig
+                        ? Colors.grey[600]
+                        : AppColors.warning,
+                    size: 24,
+                  ),
+                  SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _hasValidConfig
+                              ? '¿Cómo usar?'
+                              : 'Configuración requerida',
+                          style: TextStyle(
+                            fontSize: AppConstants.titleFontSize,
+                            fontWeight: FontWeight.w600,
+                            color: _hasValidConfig
+                                ? Colors.grey[800]
+                                : AppColors.warning,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          _hasValidConfig
+                              ? 'Presiona "Escanear" para usar la cámara o "Entrada Manual" para escribir el código'
+                              : 'Es necesario configurar la sucursal y servidor API antes de usar la aplicación',
+                          style: TextStyle(
+                            fontSize: AppConstants.subtitleFontSize,
+                            color: _hasValidConfig
+                                ? Colors.grey[600]
+                                : AppColors.warning,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  _hasValidConfig
-                      ? Icons.info_outline
-                      : Icons.warning_amber_outlined,
-                  color: _hasValidConfig ? Colors.grey[600] : AppColors.warning,
-                  size: 24,
-                ),
-                SizedBox(width: 15),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _hasValidConfig
-                            ? '¿Cómo usar?'
-                            : 'Configuración requerida',
-                        style: TextStyle(
-                          fontSize: AppConstants.titleFontSize,
-                          fontWeight: FontWeight.w600,
-                          color: _hasValidConfig
-                              ? Colors.grey[800]
-                              : AppColors.warning,
-                        ),
-                      ),
-                      SizedBox(height: 5),
-                      Text(
-                        _hasValidConfig
-                            ? 'Presiona "Escanear" para usar la cámara o "Entrada Manual" para escribir el código'
-                            : 'Es necesario configurar la sucursal y servidor API antes de usar la aplicación',
-                        style: TextStyle(
-                          fontSize: AppConstants.subtitleFontSize,
-                          color: _hasValidConfig
-                              ? Colors.grey[600]
-                              : AppColors.warning,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
