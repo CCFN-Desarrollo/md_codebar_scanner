@@ -1,11 +1,14 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import '../services/printer_service.dart';
 import '../utils/colors.dart';
 
 class BluetoothPrinterScreen extends StatefulWidget {
+  const BluetoothPrinterScreen({super.key});
+
   @override
-  _BluetoothPrinterScreenState createState() => _BluetoothPrinterScreenState();
+  State<BluetoothPrinterScreen> createState() => _BluetoothPrinterScreenState();
 }
 
 class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
@@ -92,9 +95,9 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
       List<BluetoothDevice> devices = await FlutterBluetoothSerial.instance
           .getBondedDevices();
 
-      print('🔍 TODOS LOS DISPOSITIVOS EMPAREJADOS:');
+      log('🔍 TODOS LOS DISPOSITIVOS EMPAREJADOS:');
       for (var device in devices) {
-        print('📱 "${device.name}" | ${device.address} | Tipo: ${device.type}');
+        log('📱 "${device.name}" | ${device.address} | Tipo: ${device.type}');
       }
 
       return devices.where((device) {
@@ -105,7 +108,7 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
         ),
       );
     } catch (e) {
-      print('❌ Error obteniendo todos los dispositivos: $e');
+      log('❌ Error obteniendo todos los dispositivos: $e');
       return [];
     }
   }
@@ -496,7 +499,9 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
                             borderRadius: BorderRadius.circular(12),
                             side: isPossibleTSC
                                 ? BorderSide(
-                                    color: AppColors.primary.withOpacity(0.3),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.3,
+                                    ),
                                     width: 1,
                                   )
                                 : BorderSide.none,
@@ -509,8 +514,10 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
                                 color: isConnected
                                     ? AppColors.successLight
                                     : isPossibleTSC
-                                    ? AppColors.primary.withOpacity(0.1)
-                                    : AppColors.textSecondary.withOpacity(0.1),
+                                    ? AppColors.primary.withValues(alpha: 0.1)
+                                    : AppColors.textSecondary.withValues(
+                                        alpha: 0.1,
+                                      ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -545,7 +552,9 @@ class _BluetoothPrinterScreenState extends State<BluetoothPrinterScreen> {
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary.withOpacity(0.1),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(

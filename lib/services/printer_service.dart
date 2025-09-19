@@ -1,8 +1,14 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:developer';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:md_codebar_scanner/screens/config_printer_screen.dart';
+import 'package:md_codebar_scanner/utils/colors.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product_model.dart';
 import '../utils/constants.dart';
 
@@ -12,7 +18,6 @@ class PrinterService {
   static BluetoothDevice? _connectedDevice;
   static String _connectionStatus = '';
 
-  /// Verifica y solicita permisos de Bluetooth
   static Future<bool> requestBluetoothPermissions() async {
     try {
       Map<Permission, PermissionStatus> statuses = await [
@@ -25,33 +30,22 @@ class PrinterService {
 
       return statuses.values.any((status) => status.isGranted);
     } catch (e) {
-      print('Error requesting permissions: $e');
       return true; // En versiones antiguas de Android, los permisos no son necesarios
     }
   }
 
-  /// Obtiene la lista de dispositivos Bluetooth emparejados
   static Future<List<BluetoothDevice>> getPairedDevices() async {
     try {
-      // Verificar permisos
       await requestBluetoothPermissions();
 
-      // Verificar si Bluetooth está habilitado
       bool? isEnabled = await FlutterBluetoothSerial.instance.isEnabled;
       if (isEnabled != true) {
         throw Exception('Bluetooth está desactivado');
       }
 
-      // Obtener dispositivos emparejados
       List<BluetoothDevice> devices = await FlutterBluetoothSerial.instance
           .getBondedDevices();
 
-      print('🔍 DISPOSITIVOS EMPAREJADOS ENCONTRADOS:');
-      for (var device in devices) {
-        print('📱 "${device.name}" | ${device.address} | Tipo: ${device.type}');
-      }
-
-      // Filtrar y ordenar dispositivos
       final filteredDevices = devices.where((device) {
         final name = device.name?.toLowerCase() ?? '';
         final address = device.address.toLowerCase();
@@ -60,7 +54,6 @@ class PrinterService {
         if (address.contains('00:19:0e:a6:04:5d') ||
             name.contains('bt-spp') ||
             name.contains('btspp')) {
-          print('🎯 ENCONTRADO NUESTRO TSC: $name - $address');
           return true;
         }
 
@@ -88,11 +81,11 @@ class PrinterService {
                 RegExp(r'[0-9]').hasMatch(name) ||
                 // Mostrar dispositivos con nombres válidos
                 (name.length >= 2 && !name.contains('unknown')))) {
-          print('✅ DISPOSITIVO INCLUIDO: $name - $address');
+          log(' DISPOSITIVO INCLUIDO: $name - $address');
           return true;
         }
 
-        print('❌ DISPOSITIVO FILTRADO: $name - $address');
+        log('DISPOSITIVO FILTRADO: $name - $address');
         return false;
       }).toList();
 
@@ -103,7 +96,6 @@ class PrinterService {
         final aAddress = a.address.toLowerCase();
         final bAddress = b.address.toLowerCase();
 
-        // Nuestro dispositivo específico tiene máxima prioridad
         final aIsOurTSC =
             aAddress.contains('00:19:0e:a6:04:5d') || aName.contains('bt-spp');
         final bIsOurTSC =
@@ -112,7 +104,6 @@ class PrinterService {
         if (aIsOurTSC && !bIsOurTSC) return -1;
         if (!aIsOurTSC && bIsOurTSC) return 1;
 
-        // TSC específicos tienen prioridad
         final aIsTSC =
             aName.contains('tsc') ||
             aName.contains('alpha') ||
@@ -129,15 +120,14 @@ class PrinterService {
         return aName.compareTo(bName);
       });
 
-      print('📋 DISPOSITIVOS FINALES FILTRADOS: ${filteredDevices.length}');
+      log('DISPOSITIVOS FINALES FILTRADOS: ${filteredDevices.length}');
       return filteredDevices;
     } catch (e) {
-      print('❌ Error obteniendo dispositivos: $e');
+      log('Error obteniendo dispositivos: $e');
       return [];
     }
   }
 
-  /// Conecta a la impresora TSC
   static Future<Map<String, dynamic>> connectToPrinter(
     BluetoothDevice device,
   ) async {
@@ -148,17 +138,15 @@ class PrinterService {
         await disconnect();
       }
 
-      print('🔄 Conectando a: ${device.name} (${device.address})');
+      log('Conectando a: ${device.name} (${device.address})');
 
-      // Conectar al dispositivo
       _connection = await BluetoothConnection.toAddress(device.address);
       _connectedDevice = device;
       _isConnected = true;
       _connectionStatus = 'Conectado';
 
-      print('✅ Conexión establecida con ${device.name}');
+      log('Conexión establecida con ${device.name}');
 
-      // Enviar comando de inicialización TSC
       await _sendRawData(_getTSCInitCommands());
 
       return {
@@ -172,8 +160,6 @@ class PrinterService {
       _connectedDevice = null;
       _connectionStatus = 'Error de conexión';
 
-      print('❌ Error conectando: $e');
-
       return {
         'success': false,
         'message': 'Error al conectar: ${e.toString()}',
@@ -181,15 +167,14 @@ class PrinterService {
     }
   }
 
-  /// Desconecta de la impresora
   static Future<void> disconnect() async {
     try {
       if (_connection != null) {
         await _connection!.close();
-        print('🔌 Desconectado de la impresora');
+        log('🔌 Desconectado de la impresora');
       }
     } catch (e) {
-      print('Error al desconectar: $e');
+      log('Error al desconectar: $e');
     } finally {
       _connection = null;
       _isConnected = false;
@@ -198,17 +183,26 @@ class PrinterService {
     }
   }
 
-  /// Verifica si está conectado a una impresora
+  static Future<void> forceDisconnect() async {
+    log('🚨 Forzando desconexión...');
+    _connection = null;
+    _isConnected = false;
+    _connectedDevice = null;
+    _connectionStatus = 'Desconectado (forzado)';
+    log('✅ Desconexión forzada completada');
+  }
+
   static bool get isConnected => _isConnected && _connection != null;
 
-  /// Obtiene el dispositivo conectado
   static BluetoothDevice? get connectedDevice => _connectedDevice;
 
-  /// Obtiene el estado de conexión
   static String get connectionStatus => _connectionStatus;
 
-  /// Imprime una etiqueta de producto usando comandos TSC
-  static Future<Map<String, dynamic>> printProductLabel(Product product) async {
+  static Future<Map<String, dynamic>> printProductLabel(
+    Product product,
+    int front,
+    int copies,
+  ) async {
     try {
       if (!isConnected) {
         return {
@@ -217,19 +211,12 @@ class PrinterService {
         };
       }
 
-      print('🖨️ Imprimiendo etiqueta para: ${product.itemName}');
+      String tscCommands = _generateTscLabel(product, front, copies);
 
-      // Generar comandos TSC para la etiqueta
-      String tscCommands = _generateTSCLabel(product);
-
-      // Enviar comandos a la impresora
       await _sendRawData(tscCommands);
-
-      print('✅ Etiqueta enviada a la impresora');
 
       return {'success': true, 'message': 'Etiqueta impresa correctamente'};
     } catch (e) {
-      print('❌ Error imprimiendo: $e');
       return {
         'success': false,
         'message': 'Error al imprimir: ${e.toString()}',
@@ -237,92 +224,54 @@ class PrinterService {
     }
   }
 
-  static String _generateTSCLabelStep1(Product product) {
-    final StringBuffer commands = StringBuffer();
+  static String _generateTscLabel(Product product, int front, int copies) {
+    final buffer = StringBuffer();
+    final now = DateTime.now();
+    final String date = DateFormat('dd/MM/yyyy').format(now);
 
-    commands.writeln('CLS');
-    commands.writeln('SIZE 58 mm, 30 mm');
-    commands.writeln('GAP 2 mm, 0 mm');
-    commands.writeln('DIRECTION 1,0');
-    commands.writeln('REFERENCE 0,0');
-    commands.writeln('SET TEAR ON');
-
-    // Texto simple en la parte superior
-    commands.writeln(
-      'TEXT 20,20,"TSS24.BF2",0,1,1,"${_truncateText(product.itemName, 18)}"',
+    buffer.writeln(
+      'SIZE 75 mm,25 mm',
+    ); // Tamaño etiqueta (ajustar si tu etiqueta es distinta)
+    buffer.writeln('GAP 2 mm,0'); // Separación entre etiquetas
+    buffer.writeln('CLS'); // Limpia buffer
+    buffer.writeln('DIRECTION 1,0');
+    buffer.writeln('REFERENCE 0,0');
+    buffer.writeln('OFFSET 0 mm');
+    buffer.writeln('SET TEAR ON');
+    buffer.writeln(
+      'TEXT 0,15,"3",0,1,3,"\$ ${product.priceWithTax.toStringAsFixed(2)}"',
     );
+    _addTwoLines(buffer, product.itemName, 140, 15, "3", 26);
 
-    commands.writeln('PRINT 1,1');
-    return commands.toString();
+    buffer.writeln('BARCODE 220,88,"128",45,4,0,2,3,"${product.codeBar}"');
+    String temp = "F$front  f $date";
+    buffer.writeln('TEXT 388,168,"1",0,1,1,"$temp"');
+
+    buffer.writeln('PRINT 1,$copies');
+    return buffer.toString();
   }
 
-  /// Genera comandos TSC para crear la etiqueta del producto
-  static String _generateTSCLabelOld(Product product) {
-    final StringBuffer commands = StringBuffer();
+  static void _addTwoLines(
+    StringBuffer commands,
+    String text,
+    int x,
+    int startY,
+    String font,
+    int maxCharsPerLine,
+  ) {
+    if (text.length <= maxCharsPerLine) {
+      commands.writeln('TEXT $x,$startY,"$font",0,1,1,"$text"');
+      return;
+    }
 
-    // Configuración de etiqueta de 58mm
-    commands.writeln('CLS');
-    commands.writeln(
-      'SIZE ${AppConstants.labelWidth} mm, ${AppConstants.labelHeight} mm',
-    );
-    commands.writeln('GAP ${AppConstants.labelGap} mm, 0 mm');
-    commands.writeln('DIRECTION 1,0');
-    commands.writeln('REFERENCE 0,0');
-    commands.writeln('OFFSET 0 mm');
-    commands.writeln('SET PEEL OFF');
-    commands.writeln('SET CUTTER OFF');
-    commands.writeln('SET PARTIAL_CUTTER OFF');
-    commands.writeln('SET TEAR ON');
+    final firstLine = text.substring(0, maxCharsPerLine);
+    commands.writeln('TEXT $x,$startY,"$font",0,1,1,"$firstLine"');
 
-    // Contenido de la etiqueta
-    int yPos = 30;
+    final secondLine = text.length > maxCharsPerLine * 2
+        ? text.substring(maxCharsPerLine, maxCharsPerLine * 2 - 3) + '...'
+        : text.substring(maxCharsPerLine);
 
-    // Título del producto (fuente más grande)
-    commands.writeln(
-      'TEXT 20,$yPos,"TSS24.BF2",0,1,1,"${_truncateText(product.itemName, 20)}"',
-    );
-    yPos += 40;
-
-    // Línea separadora
-    commands.writeln('BAR 20,$yPos,350,2');
-    yPos += 20;
-
-    // Código de barras
-    commands.writeln('BARCODE 20,$yPos,"128",60,1,0,2,2,"${product.codeBar}"');
-    yPos += 80;
-
-    // SKU debajo del código de barras
-    commands.writeln(
-      'TEXT 20,$yPos,"TSS24.BF2",0,1,1,"SKU: ${product.codeBar}"',
-    );
-    yPos += 30;
-
-    // Precio base
-    commands.writeln(
-      'TEXT 20,$yPos,"TSS24.BF2",0,2,2,"\$${product.priceWithTax.toStringAsFixed(2)}"',
-    );
-    yPos += 40;
-
-    commands.writeln(
-      'TEXT 20,$yPos,"TSS24.BF2",0,1,1,"Impuesto: ${product.taxRate}%"',
-    );
-    yPos += 25;
-
-    // Footer
-    commands.writeln(
-      'TEXT 20,$yPos,"TSS24.BF2",0,1,1,"${AppConstants.printCompanyName}"',
-    );
-
-    // Imprimir etiqueta
-    commands.writeln('PRINT 1,1');
-
-    return commands.toString();
-  }
-
-  /// Trunca texto para que quepa en la etiqueta
-  static String _truncateText(String text, int maxLength) {
-    if (text.length <= maxLength) return text;
-    return '${text.substring(0, maxLength - 3)}...';
+    commands.writeln('TEXT $x,${startY + 35},"$font",0,1,1,"$secondLine"');
   }
 
   /// Comandos de inicialización para impresora TSC
@@ -333,25 +282,22 @@ CLS
 ''';
   }
 
-  /// Envía datos raw a la impresora
   static Future<void> _sendRawData(String data) async {
     if (_connection == null) {
       throw Exception('No hay conexión establecida');
     }
 
     try {
-      print('📤 Enviando datos: ${data.length} caracteres');
+      log('Enviando datos: ${data.length} caracteres');
 
-      // Convertir string a bytes
       Uint8List bytes = Uint8List.fromList(utf8.encode(data));
 
-      // Enviar datos
       _connection!.output.add(bytes);
       await _connection!.output.allSent;
 
-      print('✅ Datos enviados correctamente');
+      log('Datos enviados correctamente');
     } catch (e) {
-      print('❌ Error enviando datos: $e');
+      log('Error enviando datos: $e');
       throw Exception('Error al enviar datos: $e');
     }
   }
@@ -366,29 +312,35 @@ CLS
         };
       }
 
-      print('🧪 Imprimiendo etiqueta de prueba...');
+      final buffer = StringBuffer();
 
-      String testCommands =
-          '''
-CLS
-SIZE ${AppConstants.labelWidth} mm, 30 mm
-GAP ${AppConstants.labelGap} mm, 0 mm
-TEXT 20,30,"TSS24.BF2",0,1,1,"PRUEBA DE IMPRESION"
-TEXT 20,60,"TSS24.BF2",0,1,1,"TSC Alpha-3RB"
-TEXT 20,90,"TSS24.BF2",0,1,1,"Conexion exitosa"
-BARCODE 20,120,"128",40,1,0,2,2,"123456789"
-TEXT 20,170,"TSS24.BF2",0,1,1,"SKU: 123456789"
-TEXT 20,200,"TSS24.BF2",0,1,1,"flutter_bluetooth_serial"
-PRINT 1,1
-''';
+      buffer.writeln(
+        'SIZE 75 mm,25 mm',
+      ); // Tamaño etiqueta (ajustar si tu etiqueta es distinta)
+      buffer.writeln('GAP 2 mm,0'); // Separación entre etiquetas
+      buffer.writeln('CLS'); // Limpia buffer
+      buffer.writeln('DIRECTION 1,0');
+      buffer.writeln('REFERENCE 0,0');
+      buffer.writeln('OFFSET 0 mm');
+      buffer.writeln('SET TEAR ON');
+      buffer.writeln('TEXT 0,20,"3",0,1,3,"\$ 0.0"');
+      _addTwoLines(
+        buffer,
+        "dolor sit amet, consectetur adipiscing elit",
+        140,
+        20,
+        "3",
+        26,
+      );
 
-      await _sendRawData(testCommands);
+      buffer.writeln('BARCODE 220,80,"128",45,4,0,2,3,"1234567890"');
+      buffer.writeln('TEXT 320,160,"1",0,1,1,"F1  f.15/09/2025"');
 
-      print('✅ Etiqueta de prueba enviada');
+      buffer.writeln('PRINT 1,1');
+      await _sendRawData(buffer.toString());
 
       return {'success': true, 'message': 'Etiqueta de prueba enviada'};
     } catch (e) {
-      print('❌ Error en prueba: $e');
       return {'success': false, 'message': 'Error en prueba: ${e.toString()}'};
     }
   }
@@ -422,7 +374,13 @@ PRINT 1,1
     }
   }
 
-  /// Verifica si Bluetooth está disponible y encendido
+  static Future<bool> hasPrinterConfigured() async {
+    final prefs = await SharedPreferences.getInstance();
+    final selectedPrinterAddress =
+        prefs.getString(AppConstants.prefsSelectedPrinter) ?? '';
+    return selectedPrinterAddress.isNotEmpty;
+  }
+
   static Future<Map<String, dynamic>> checkBluetoothStatus() async {
     try {
       bool? isAvailable = await FlutterBluetoothSerial.instance.isAvailable;
@@ -442,5 +400,85 @@ PRINT 1,1
         'message': 'Error verificando Bluetooth: $e',
       };
     }
+  }
+
+  static Future<void> showPrinterNotConfiguredMessage(
+    BuildContext context,
+    String message,
+  ) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.warning_amber, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: AppColors.warning,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        action: SnackBarAction(
+          label: 'Configurar',
+          textColor: Colors.white,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (builder) => ConfigPrinterScreen()),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  static Future<Map<String, dynamic>> connectAndlog(
+    BluetoothDevice printerDevice,
+    Product product,
+    int front,
+    int copies,
+  ) async {
+    final connectResult = await PrinterService.connectToPrinter(printerDevice);
+
+    if (!connectResult['success']) {
+      return {
+        'success': false,
+        'message': 'Error conectando: ${connectResult['message']}',
+      };
+    }
+
+    final result = await PrinterService.printProductLabel(
+      product,
+      front,
+      copies,
+    );
+
+    await disconnect();
+
+    return result;
+  }
+
+  static Future<Map<String, String>> getPrinterInfo() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    return {
+      'address': prefs.getString(AppConstants.prefsSelectedPrinter) ?? '',
+      'name': prefs.getString(AppConstants.prefsSelectedPrinterName) ?? '',
+    };
+  }
+
+  static Future<BluetoothDevice?> getConfiguredPrinter() async {
+    final printerInfo = await getPrinterInfo();
+    final selectedPrinterAddress = printerInfo['address']!;
+    final selectedPrinterName = printerInfo['name']!;
+
+    if (selectedPrinterAddress.isEmpty) {
+      return null;
+    }
+
+    return BluetoothDevice(
+      name: selectedPrinterName,
+      address: selectedPrinterAddress,
+    );
   }
 }

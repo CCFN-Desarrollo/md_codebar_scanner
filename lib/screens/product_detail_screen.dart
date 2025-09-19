@@ -1,16 +1,37 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:md_codebar_scanner/models/product_model.dart';
-import 'package:md_codebar_scanner/screens/bluetooth_printer_screen.dart';
 import 'package:md_codebar_scanner/services/printer_service.dart';
 import 'package:md_codebar_scanner/utils/colors.dart';
+import 'package:md_codebar_scanner/utils/messages.dart';
+import 'package:md_codebar_scanner/utils/print_progress_dialog.dart';
+import 'package:md_codebar_scanner/widgets/custom_slider.dart';
+import 'package:md_codebar_scanner/widgets/info_messages.dart';
 
-class ProductDetailScreen extends StatelessWidget {
+class ProductDetailScreen extends StatefulWidget {
   final Product product;
 
   const ProductDetailScreen({super.key, required this.product});
 
   @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  double frontNumber = 1; // Mover la variable al estado
+  double copies = 1;
+  @override
+  void initState() {
+    super.initState();
+    frontNumber = 1.0; // Valor inicial
+    copies = 1.0;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    var promotionType = widget.product.promotion?.promotionType ?? 'NA';
+    Product product = widget.product;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Detalle del Producto'),
@@ -44,7 +65,7 @@ class ProductDetailScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
+                              color: Colors.grey.withValues(alpha: 0.1),
                               spreadRadius: 1,
                               blurRadius: 10,
                               offset: Offset(0, 2),
@@ -59,7 +80,9 @@ class ProductDetailScreen extends StatelessWidget {
                                 Container(
                                   padding: EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primary.withOpacity(0.1),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Icon(
@@ -75,18 +98,9 @@ class ProductDetailScreen extends StatelessWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Producto Encontrado',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: AppColors.success,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
                                         product.itemName,
                                         style: TextStyle(
-                                          fontSize: 22,
+                                          fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           color: AppColors.primary,
                                         ),
@@ -100,9 +114,9 @@ class ProductDetailScreen extends StatelessWidget {
                         ),
                       ),
 
-                      SizedBox(height: 24),
+                      SizedBox(height: 18),
 
-                      // Información del producto
+                      // Información e
                       Container(
                         width: double.infinity,
                         padding: EdgeInsets.all(20),
@@ -111,7 +125,7 @@ class ProductDetailScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
+                              color: Colors.grey.withValues(alpha: 0.1),
                               spreadRadius: 1,
                               blurRadius: 10,
                               offset: Offset(0, 2),
@@ -140,21 +154,69 @@ class ProductDetailScreen extends StatelessWidget {
                               product.itemCode.toString(),
                               Icons.qr_code_2,
                             ),
-                            _buildDetailRow(
-                              'Precio:',
-                              '\$${product.price.toStringAsFixed(2)}',
-                              Icons.attach_money,
-                            ),
-                            _buildDetailRow(
-                              'Impuesto:',
-                              '${product.taxRate.toString()}%',
-                              Icons.receipt_long,
-                            ),
 
-                            ...[..._buildDiscountLabel()],
+                            CompactCustomSlider(
+                              value: frontNumber,
+                              onChanged: (value) {
+                                setState(() {
+                                  frontNumber = value;
+                                });
+                              },
+                              label: 'FRENTE:',
+                            ),
+                            CompactCustomSlider(
+                              value: copies,
+                              onChanged: (value) {
+                                setState(() {
+                                  copies = value;
+                                });
+                              },
+                              label: 'IMPRESIONES:',
+                              icon: Icons.print,
+                              max: 5,
+                              divisions: 4,
+                            ),
                           ],
                         ),
                       ),
+
+                      SizedBox(height: 24),
+
+                      // Información de descuento
+                      if (promotionType != 'NA')
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withValues(alpha: 0.1),
+                                spreadRadius: 1,
+                                blurRadius: 10,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Información de Descuento',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              ...[..._buildDiscountLabel()],
+                              SizedBox(height: 12),
+                              _buildPriceWithDiscountCalculation(),
+                            ],
+                          ),
+                        ),
 
                       SizedBox(height: 24),
 
@@ -171,7 +233,7 @@ class ProductDetailScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Cálculo de Precio',
+                              'Precio de Lista',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -183,6 +245,18 @@ class ProductDetailScreen extends StatelessWidget {
                           ],
                         ),
                       ),
+
+                      if (promotionType != 'NA')
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Expanded(
+                            child: InfoMessageBox(
+                              message: "Impresión en base a precio de lista",
+                              type: InfoMessageType.warning,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -195,7 +269,7 @@ class ProductDetailScreen extends StatelessWidget {
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
+                      color: Colors.grey.withValues(alpha: 0.1),
                       spreadRadius: 1,
                       blurRadius: 10,
                       offset: Offset(0, -2),
@@ -226,14 +300,16 @@ class ProductDetailScreen extends StatelessWidget {
                       child: SizedBox(
                         height: 50,
                         child: ElevatedButton.icon(
-                          onPressed: () => _showPrintPreview(context),
+                          onPressed: () => _showPrintLabel(context),
                           icon: Icon(Icons.print),
-                          label: Text('Reimprimir Recibo'),
+                          label: Text('Imprimir'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             elevation: 2,
-                            shadowColor: AppColors.primary.withOpacity(0.3),
+                            shadowColor: AppColors.primary.withValues(
+                              alpha: 0.3,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -253,7 +329,7 @@ class ProductDetailScreen extends StatelessWidget {
 
   Widget _buildDetailRow(String label, String value, IconData icon) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Icon(icon, size: 20, color: AppColors.primary),
@@ -304,6 +380,40 @@ class ProductDetailScreen extends StatelessWidget {
   }
 
   Widget _buildPriceCalculation() {
+    Product product = widget.product;
+    final double basePrice = product.price;
+
+    //product.discount;
+    final double tax = product.taxRate;
+
+    //final double priceAfterDiscount = basePrice - discountAmount;
+    final double priceAfterDiscount = basePrice;
+    final double taxAmount = priceAfterDiscount * (tax / 100);
+    final double finalPrice = priceAfterDiscount + taxAmount;
+
+    return Column(
+      children: [
+        _buildCalculationRow(
+          'Precio de lista:',
+          '\$${basePrice.toStringAsFixed(2)}',
+        ),
+
+        _buildCalculationRow(
+          'Impuesto ($tax%):',
+          '\$${taxAmount.toStringAsFixed(2)}',
+        ),
+        Divider(thickness: 1, color: AppColors.border),
+        _buildCalculationRow(
+          'Precio a Imprimir:',
+          '\$${finalPrice.toStringAsFixed(2)}',
+          isFinal: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPriceWithDiscountCalculation() {
+    Product product = widget.product;
     final double basePrice = product.price;
 
     //product.discount;
@@ -328,7 +438,7 @@ class ProductDetailScreen extends StatelessWidget {
     return Column(
       children: [
         _buildCalculationRow(
-          'Precio base:',
+          'Precio de lista:',
           '\$${basePrice.toStringAsFixed(2)}',
         ),
         if (discount > 0.0) ...[
@@ -348,7 +458,7 @@ class ProductDetailScreen extends StatelessWidget {
         ),
         Divider(thickness: 1, color: AppColors.border),
         _buildCalculationRow(
-          'Precio final:',
+          'Precio con Descuento:',
           '\$${finalPrice.toStringAsFixed(2)}',
           isFinal: true,
         ),
@@ -392,332 +502,118 @@ class ProductDetailScreen extends StatelessWidget {
     );
   }
 
-  void _showPrintPreview(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Container(
-            padding: EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.print, color: AppColors.primary, size: 24),
-                    SizedBox(width: 12),
-                    Text(
-                      'Imprimir Etiqueta',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20),
-
-                // Estado de la impresora
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: PrinterService.isConnected
-                        ? AppColors.successLight
-                        : AppColors.warningLight,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: PrinterService.isConnected
-                          ? AppColors.success
-                          : AppColors.warning,
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        PrinterService.isConnected
-                            ? Icons.bluetooth_connected
-                            : Icons.bluetooth_disabled,
-                        color: PrinterService.isConnected
-                            ? AppColors.success
-                            : AppColors.warning,
-                        size: 20,
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          PrinterService.isConnected
-                              ? 'Conectado: ${PrinterService.connectedDevice?.name}'
-                              : 'Sin conexión a impresora',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: PrinterService.isConnected
-                                ? AppColors.success
-                                : AppColors.warning,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: 20),
-
-                // Vista previa de la etiqueta
-                Container(
-                  width: 250,
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: AppColors.border, width: 2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Título del recibo
-                      Text(
-                        product.itemName,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-
-                      // Código de barras simulado
-                      Container(
-                        height: 40,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '|||  ||  ||  |||  ||  |  ||  |||',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontFamily: 'monospace',
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Center(
-                        child: Text(
-                          product.codeBar,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 12),
-
-                      // Precio
-                      Center(
-                        child: Text(
-                          '\$${product.priceWithTax.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 8),
-
-                      // Información adicional
-                      Text(
-                        'Impuesto: ${product.taxRate}%',
-                        style: TextStyle(fontSize: 10),
-                      ),
-                      if (0 > 0)
-                        Text(
-                          'Descuento: ${0}%',
-                          style: TextStyle(fontSize: 10),
-                        ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 24),
-
-                // Botones
-                Row(
-                  children: [
-                    if (!PrinterService.isConnected) ...[
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            _showBluetoothSettings(context);
-                          },
-                          icon: Icon(Icons.bluetooth),
-                          label: Text('Configurar'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            side: BorderSide(color: AppColors.primary),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                    ],
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: Text('Cerrar'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.textSecondary,
-                          side: BorderSide(color: AppColors.border),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: PrinterService.isConnected
-                            ? () => _showPrintLabel(context)
-                            : null,
-                        child: Text('Imprimir'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: AppColors.textTertiary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showBluetoothSettings(BuildContext context) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => BluetoothPrinterScreen()),
-    );
-
-    // Si se conectó exitosamente, mostrar el dialog de impresión nuevamente
-    if (result == true) {
-      _showPrintPreview(context);
-    }
-  }
-
   void _showPrintLabel(BuildContext context) async {
-    Navigator.of(context).pop(); // Cerrar el dialog de vista previa
+    Product product = widget.product;
+    if (!context.mounted) return;
+    final hasPrinterConfigured = await PrinterService.hasPrinterConfigured();
 
-    // Mostrar indicador de impresión consistente con el resto de la app
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Imprimiendo etiqueta...',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    if (!hasPrinterConfigured) {
+      await PrinterService.showPrinterNotConfiguredMessage(
+        context,
+        'No hay impresora configurada!',
+      );
+      return;
+    }
+
+    final printerInfo = await PrinterService.getPrinterInfo();
+    final printerName = printerInfo['name'] ?? '';
+
+    if (printerName.isEmpty) {
+      await PrinterService.showPrinterNotConfiguredMessage(
+        context,
+        'No hay impresora configurada',
+      );
+      return;
+    }
+
+    PrintProgressDialog.show(context, printerName);
 
     try {
-      // Verificar conexión antes de imprimir
-      if (!PrinterService.isConnected) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('La impresora se ha desconectado'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+      final printerDevice = await PrinterService.getConfiguredPrinter();
+
+      if (printerDevice == null) {
+        await PrinterService.showPrinterNotConfiguredMessage(
+          context,
+          'No hay impresora configurada',
         );
+        PrintProgressDialog.close();
         return;
       }
 
-      // Imprimir la etiqueta del producto
-      final result = await PrinterService.printProductLabel(product);
+      final connectedDevice = await PrinterService.connectToPrinter(
+        printerDevice,
+      );
 
-      Navigator.of(context).pop(); // Cerrar dialog de progreso
+      if (!connectedDevice['success']) {
+        if (!mounted) return;
+
+        await PrinterService.showPrinterNotConfiguredMessage(
+          context,
+          'No fue posible conectarse con la impresora. Verifique que esté encendida y disponible.',
+        );
+        PrintProgressDialog.close();
+        return;
+      }
+
+      final result = await PrinterService.printProductLabel(
+        product,
+        frontNumber.round(),
+        copies.round(),
+      );
 
       if (result['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
-                Text('Etiqueta impresa correctamente'),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        MessageUtils.showSuccessMessage(
+          context,
+          'Etiqueta impresa correctamente',
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 8),
-                Expanded(child: Text(result['message'] ?? 'Error al imprimir')),
-              ],
-            ),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        MessageUtils.showErrorMessage(
+          context,
+          result['message'] ?? 'Error al imprimir',
         );
       }
+      if (PrinterService.isConnected) {
+        try {
+          await PrinterService.disconnect().timeout(
+            Duration(seconds: 2),
+            onTimeout: () {
+              log('⚠️ Timeout en disconnect, usando forceDisconnect...');
+              PrinterService.forceDisconnect();
+            },
+          );
+          log('✅ Desconexión completada');
+        } catch (disconnectError) {
+          log('⚠️ Error al desconectar: $disconnectError');
+          try {
+            await PrinterService.forceDisconnect();
+          } catch (e) {
+            log('❌ Error en forceDisconnect: $e');
+          }
+        }
+      }
     } catch (e) {
-      Navigator.of(context).pop(); // Cerrar dialog de progreso
+      if (mounted) {
+        MessageUtils.showErrorMessage(context, 'Error al imprimir: $e');
+      }
+    } finally {
+      PrintProgressDialog.close();
+    }
+  }
 
+  void showMessage(
+    BuildContext context,
+    String message,
+    Color color, {
+    bool isError = false,
+  }) {
+    try {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: [
               Icon(Icons.error_outline, color: Colors.white),
               SizedBox(width: 8),
-              Expanded(child: Text('Error al imprimir: $e')),
+              Expanded(child: Text('Error al imprimir: $message')),
             ],
           ),
           backgroundColor: AppColors.error,
@@ -727,10 +623,13 @@ class ProductDetailScreen extends StatelessWidget {
           ),
         ),
       );
+    } catch (e) {
+      log('Error mostrando mensaje: $e');
     }
   }
 
   List<Widget> _buildDiscountLabel() {
+    Product product = widget.product;
     final double priceWithTax = product.priceWithTax;
     var promotionType = product.promotion?.promotionType ?? 'NA';
 
@@ -743,7 +642,7 @@ class ProductDetailScreen extends StatelessWidget {
         return [
           _buildDetailRow(
             'Descuento por volumen:',
-            '${qty} X \$${precioDV.toStringAsFixed(2)}',
+            '$qty X \$${precioDV.toStringAsFixed(2)}',
             Icons.local_offer,
           ),
         ];

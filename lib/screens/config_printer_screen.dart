@@ -6,26 +6,23 @@ import '../utils/colors.dart';
 import '../utils/constants.dart';
 import '../services/printer_service.dart';
 
-class ConfigScreen extends StatefulWidget {
+class ConfigPrinterScreen extends StatefulWidget {
   final VoidCallback? onConfigSaved;
 
-  const ConfigScreen({super.key, this.onConfigSaved});
+  const ConfigPrinterScreen({super.key, this.onConfigSaved});
 
   @override
-  State<ConfigScreen> createState() => _ConfigScreenState();
+  State<ConfigPrinterScreen> createState() => _ConfigPrinterScreenState();
 }
 
-class _ConfigScreenState extends State<ConfigScreen> {
-  final TextEditingController _sucursalController = TextEditingController();
-  final TextEditingController _servidorController = TextEditingController();
+class _ConfigPrinterScreenState extends State<ConfigPrinterScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _isSaving = false;
 
-  // Variables para la impresora que faltaban
-  bool _isLoadingPrinters = false;
   String _selectedPrinterAddress = '';
   String _selectedPrinterName = '';
+  bool _isLoadingPrinters = false;
 
   @override
   void initState() {
@@ -35,8 +32,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
   @override
   void dispose() {
-    _sucursalController.dispose();
-    _servidorController.dispose();
     super.dispose();
   }
 
@@ -49,12 +44,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       if (mounted) {
         setState(() {
-          _sucursalController.text =
-              prefs.getString(AppConstants.prefsSucursal) ?? '';
-          _servidorController.text =
-              prefs.getString(AppConstants.prefsServidor) ?? '';
-
-          // Cargar configuración de impresora guardada
           _selectedPrinterAddress =
               prefs.getString(AppConstants.prefsSelectedPrinter) ?? '';
           _selectedPrinterName =
@@ -84,14 +73,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        AppConstants.prefsSucursal,
-        _sucursalController.text.trim(),
-      );
-      await prefs.setString(
-        AppConstants.prefsServidor,
-        _servidorController.text.trim(),
-      );
 
       // Guardar configuración de impresora
       await prefs.setString(
@@ -109,9 +90,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
       _showSnackBar(AppConstants.successConfigSaved, AppColors.success);
 
-      if (widget.onConfigSaved != null) {
+      /*if (widget.onConfigSaved != null) {
         widget.onConfigSaved!(); // ← Ejecuta inmediatamente al guardar
-      }
+      }*/
 
       // Regresar a la pantalla anterior después de guardar
       Future.delayed(Duration(seconds: 1), () {
@@ -188,11 +169,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
                       leading: Container(
                         padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color:
-                              isCurrentlySelected
-                                    ? AppColors.primaryLight
-                                    : AppColors.textSecondary
-                                ..withValues(alpha: 0.1),
+                          color: isCurrentlySelected
+                              ? AppColors.primaryLight
+                              : AppColors.textSecondary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Icon(
@@ -380,87 +359,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
     }
   }
 
-  void _resetForm() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.warning_amber, color: AppColors.warning),
-              SizedBox(width: 12),
-              Text('Confirmar'),
-            ],
-          ),
-          content: Text(
-            '¿Estás seguro de que quieres limpiar todos los campos?',
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.textSecondary,
-              ),
-              child: Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                setState(() {
-                  _sucursalController.clear();
-                  _servidorController.clear();
-                  _selectedPrinterAddress = '';
-                  _selectedPrinterName = '';
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.warning,
-                foregroundColor: Colors.white,
-              ),
-              child: Text('Limpiar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  String? _validateSucursal(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'La sucursal es requerida';
-    }
-    if (value.trim().length < 2) {
-      return 'La sucursal debe tener al menos 2 caracteres';
-    }
-    return null;
-  }
-
-  String? _validateServidor(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'El servidor API es requerido';
-    }
-
-    // Validación básica de URL
-    // Validación básica de URL
-    final urlPattern = RegExp(
-      r'^(https?:\/\/)?'
-      r'((([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,})'
-      r'|((\d{1,3}\.){3}\d{1,3}))'
-      r'(:\d+)?'
-      r'(\/[^\s]*)?$',
-      caseSensitive: false,
-    );
-
-    if (!urlPattern.hasMatch(value.trim())) {
-      return 'Ingresa una URL válida (ej: https://api.ejemplo.com)';
-    }
-
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -519,7 +417,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                           width: double.infinity,
                           padding: EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: AppColors.primary..withValues(alpha: 0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: AppColors.primary.withValues(alpha: 0.2),
@@ -535,7 +433,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                               ),
                               SizedBox(height: 12),
                               Text(
-                                'Configuración del Sistema',
+                                'Configuración de Impresora',
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -545,7 +443,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                'Configura los parámetros necesarios para el funcionamiento de la aplicación',
+                                'Selecciona la impresora y haz tu prueba',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: AppColors.textSecondary,
@@ -554,113 +452,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
                                 textAlign: TextAlign.center,
                               ),
                             ],
-                          ),
-                        ),
-
-                        SizedBox(height: 32),
-
-                        // Campo Sucursal
-                        Text(
-                          'Información de Sucursal',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey..withValues(alpha: 0.1),
-                                spreadRadius: 1,
-                                blurRadius: 10,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: TextFormField(
-                            controller: _sucursalController,
-                            enabled: !_isSaving,
-                            validator: _validateSucursal,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              labelText: 'Nombre de la Sucursal',
-                              hintText: 'Ej: Sucursal Centro',
-                              prefixIcon: Icon(
-                                Icons.store,
-                                color: AppColors.primary,
-                              ),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                            ),
-                            style: TextStyle(fontSize: 16),
-                            textCapitalization: TextCapitalization.words,
-                          ),
-                        ),
-
-                        SizedBox(height: 24),
-
-                        // Campo Servidor
-                        Text(
-                          'Configuración de Red',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey..withValues(alpha: 0.1),
-                                spreadRadius: 1,
-                                blurRadius: 10,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: TextFormField(
-                            controller: _servidorController,
-                            enabled: !_isSaving,
-                            validator: _validateServidor,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              labelText: 'Servidor API',
-                              hintText: 'https://api.ejemplo.com',
-                              prefixIcon: Icon(
-                                Icons.cloud,
-                                color: AppColors.primary,
-                              ),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                            ),
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontFamily: 'monospace',
-                            ),
-                            keyboardType: TextInputType.url,
                           ),
                         ),
 
@@ -683,7 +474,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey..withValues(alpha: 0.1),
+                                color: Colors.grey.withValues(alpha: 0.1),
                                 spreadRadius: 1,
                                 blurRadius: 10,
                                 offset: Offset(0, 2),
@@ -730,8 +521,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
                                   width: double.infinity,
                                   padding: EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primary
-                                      ..withValues(alpha: 0.1),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
                                       color: AppColors.primary.withValues(
@@ -787,13 +579,17 @@ class _ConfigScreenState extends State<ConfigScreen> {
                                           vertical: 4,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: AppColors.success,
+                                          color: PrinterService.isConnected
+                                              ? AppColors.success
+                                              : AppColors.error,
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
                                         ),
                                         child: Text(
-                                          'ACTIVA',
+                                          PrinterService.isConnected
+                                              ? 'ACTIVA'
+                                              : 'INACTIVA',
                                           style: TextStyle(
                                             fontSize: 10,
                                             color: Colors.white,
@@ -889,80 +685,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
                         SizedBox(height: 32),
 
-                        // Información de ayuda
-                        Container(
-                          padding: EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.info..withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.info.withValues(alpha: 0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: AppColors.info,
-                                    size: 20,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Información Importante',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.info,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                '• La configuración se guardará automáticamente en el dispositivo\n'
-                                '• El servidor API debe ser accesible desde esta red\n'
-                                '• La impresora debe estar emparejada por Bluetooth previamente\n'
-                                '• Estos datos se utilizarán para conectar con el sistema central',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.info,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        SizedBox(height: 40),
-
                         // Botones de acción
                         Row(
                           children: [
-                            Expanded(
-                              child: SizedBox(
-                                height: 50,
-                                child: OutlinedButton.icon(
-                                  onPressed: _isSaving ? null : _resetForm,
-                                  icon: Icon(Icons.clear_all),
-                                  label: Text('Limpiar'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppColors.warning,
-                                    side: BorderSide(
-                                      color: AppColors.warning,
-                                      width: 2,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 16),
                             Expanded(
                               flex: 2,
                               child: SizedBox(
@@ -1008,18 +733,19 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
                         SizedBox(height: 20),
 
-                        // Estado de configuración actual
-                        if (_sucursalController.text.isNotEmpty ||
-                            _servidorController.text.isNotEmpty ||
-                            _selectedPrinterAddress.isNotEmpty) ...[
+                        ...[
                           Container(
                             width: double.infinity,
                             padding: EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppColors.success..withValues(alpha: 0.1),
+                              color: PrinterService.isConnected
+                                  ? AppColors.success.withValues(alpha: 0.1)
+                                  : AppColors.warning.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: AppColors.success.withValues(alpha: 0.2),
+                                color: PrinterService.isConnected
+                                    ? AppColors.success.withValues(alpha: 0.2)
+                                    : AppColors.warning.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                             ),
@@ -1030,45 +756,48 @@ class _ConfigScreenState extends State<ConfigScreen> {
                                   children: [
                                     Icon(
                                       Icons.check_circle_outline,
-                                      color: AppColors.success,
+                                      color: PrinterService.isConnected
+                                          ? AppColors.success
+                                          : AppColors.warning,
                                       size: 20,
                                     ),
                                     SizedBox(width: 8),
                                     Text(
-                                      'Configuración Actual',
+                                      PrinterService.isConnected
+                                          ? 'Configuración Actual'
+                                          : 'Favor de revisar...',
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: AppColors.success,
+                                        color: PrinterService.isConnected
+                                            ? AppColors.success
+                                            : AppColors.warning,
                                       ),
                                     ),
                                   ],
                                 ),
                                 SizedBox(height: 8),
-                                if (_sucursalController.text.isNotEmpty)
-                                  Text(
-                                    'Sucursal: ${_sucursalController.text}',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.success,
-                                    ),
-                                  ),
-                                if (_servidorController.text.isNotEmpty)
-                                  Text(
-                                    'Servidor: ${_servidorController.text}',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.success,
-                                      fontFamily: 'monospace',
-                                    ),
-                                  ),
-                                if (_selectedPrinterAddress.isNotEmpty)
-                                  Text(
-                                    'Impresora: $_selectedPrinterName',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.success,
-                                    ),
+                                if (!PrinterService.isConnected)
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Que la impresora este encendida',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: AppColors.warning,
+                                        ),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Que la impresora esta conectada al bluetooth',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: AppColors.warning,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                               ],
                             ),

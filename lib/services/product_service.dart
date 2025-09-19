@@ -11,7 +11,7 @@ class ProductService {
     String sucursal = await StorageHelper.getSucursal();
 
     final verifyPriceUrl =
-        "${servidor}/v2/products/${sku}/verifyPrice?priceListId=3&warehouseId=${sucursal}&searchBy=codebar";
+        "$servidor/v2/products/$sku/verifyPrice?priceListId=3&warehouseId=$sucursal&searchBy=codebar";
 
     return await ProductRepository.getProduct(verifyPriceUrl);
   }

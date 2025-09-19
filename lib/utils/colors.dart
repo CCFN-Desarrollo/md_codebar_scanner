@@ -55,7 +55,7 @@ class AppColors {
 
   // Métodos de utilidad
   static Color withOpacity(Color color, double opacity) {
-    return color.withOpacity(opacity);
+    return color.withValues(alpha: opacity);
   }
 
   static Color lighten(Color color, [double amount = 0.1]) {
@@ -73,14 +73,14 @@ class AppColors {
   }
 
   // Métodos para obtener colores con transparencia predefinida
-  static Color get primaryLight => primary.withOpacity(0.1);
-  static Color get primaryMedium => primary.withOpacity(0.5);
+  static Color get primaryLight => primary.withValues(alpha: 0.1);
+  static Color get primaryMedium => primary.withValues(alpha: 0.5);
   static Color get primaryDark => darken(primary, 0.2);
 
-  static Color get successLight => success.withOpacity(0.1);
-  static Color get errorLight => error.withOpacity(0.1);
-  static Color get warningLight => warning.withOpacity(0.1);
-  static Color get infoLight => info.withOpacity(0.1);
+  static Color get successLight => success.withValues(alpha: 0.1);
+  static Color get errorLight => error.withValues(alpha: 0.1);
+  static Color get warningLight => warning.withValues(alpha: 0.1);
+  static Color get infoLight => info.withValues(alpha: 0.1);
 
   // Colores específicos para diferentes estados de componentes
   static Color get inputBackground => Colors.white;
@@ -93,6 +93,6 @@ class AppColors {
   static Color get appBarForeground => Colors.white;
 
   // Colores para cards y containers
-  static Color get cardShadow => Colors.grey.withOpacity(0.1);
+  static Color get cardShadow => Colors.grey.withValues(alpha: 0.1);
   static Color get containerBorder => border;
 }

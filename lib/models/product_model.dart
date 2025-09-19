@@ -79,7 +79,7 @@ class Product {
     if (value == null) return null;
     if (value is! Map<String, dynamic>) return null;
 
-    final map = value as Map<String, dynamic>;
+    final map = value;
 
     final hasValidPromotionCode =
         map['PromotionCode'] != null &&

@@ -11,11 +11,9 @@ import '../utils/colors.dart';
 class ScannerScreen extends StatefulWidget {
   final bool showManualEntry;
 
-  const ScannerScreen({Key? key, this.showManualEntry = false})
-    : super(key: key);
-
+  const ScannerScreen({super.key, this.showManualEntry = false});
   @override
-  _ScannerScreenState createState() => _ScannerScreenState();
+  State<ScannerScreen> createState() => _ScannerScreenState();
 }
 
 class _ScannerScreenState extends State<ScannerScreen>
@@ -46,6 +44,8 @@ class _ScannerScreenState extends State<ScannerScreen>
 
     if (widget.showManualEntry) {
       _showCamera = false;
+    } else {
+      _startCamera();
     }
   }
 
@@ -280,7 +280,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                         Container(
                           padding: EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppColors.error.withOpacity(0.1),
+                            color: AppColors.error.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(50),
                           ),
                           child: Icon(
@@ -390,7 +390,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                     child: Container(
                       padding: EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
+                        color: Colors.black.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -486,12 +486,12 @@ class _ScannerScreenState extends State<ScannerScreen>
           if (!_showNotFound) ...[
             // Área de escaneo visual
             Expanded(
-              flex: 2,
+              flex: 3,
               child: Container(
                 width: double.infinity,
                 margin: EdgeInsets.symmetric(vertical: 20),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: AppColors.border, width: 2),
                 ),
@@ -505,14 +505,6 @@ class _ScannerScreenState extends State<ScannerScreen>
                         color: AppColors.textSecondary,
                       ),
                       SizedBox(height: 16),
-                      Text(
-                        'Entrada Manual',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -526,7 +518,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Colors.grey.withValues(alpha: 0.1),
                     spreadRadius: 1,
                     blurRadius: 10,
                     offset: Offset(0, 2),
@@ -596,8 +588,8 @@ class _ScannerScreenState extends State<ScannerScreen>
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        disabledBackgroundColor: AppColors.primary.withOpacity(
-                          0.6,
+                        disabledBackgroundColor: AppColors.primary.withValues(
+                          alpha: 0.6,
                         ),
                       ),
                     ),
@@ -628,8 +620,8 @@ class _ScannerScreenState extends State<ScannerScreen>
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        disabledForegroundColor: AppColors.primary.withOpacity(
-                          0.6,
+                        disabledForegroundColor: AppColors.primary.withValues(
+                          alpha: 0.6,
                         ),
                       ),
                     ),
@@ -641,50 +633,6 @@ class _ScannerScreenState extends State<ScannerScreen>
             SizedBox(height: 24),
 
             // Información de códigos de prueba
-            if (false)
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.info.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.info.withOpacity(0.2),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.lightbulb_outline,
-                          color: AppColors.info,
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Códigos de prueba:',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.info,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      '12345, 67890, 11111, 22222, 33333',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.info,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
           ],
         ],
       ),

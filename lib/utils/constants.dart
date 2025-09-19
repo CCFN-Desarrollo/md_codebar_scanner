@@ -1,10 +1,12 @@
 class AppConstants {
   // Autenticación
-  static const String correctPassword = "12345";
+  static const String correctPassword = "Chivas.2020";
 
   // Claves de SharedPreferences
   static const String prefsSucursal = 'sucursal';
   static const String prefsServidor = 'servidor';
+  static const String prefsSelectedPrinter = 'selectedPrinterAddress';
+  static const String prefsSelectedPrinterName = 'selectedPrinterName';
 
   // Configuración UI
   static const int notFoundDisplayDuration = 5; // seconds
@@ -17,15 +19,6 @@ class AppConstants {
   // Configuraciones de la app
   static const String appName = 'Barcode Scanner';
   static const String appVersion = '1.0.0';
-
-  // Códigos de prueba
-  static const List<String> testCodes = [
-    '12345',
-    '67890',
-    '11111',
-    '22222',
-    '33333',
-  ];
 
   // Mensajes de error
   static const String errorIncorrectPassword = 'Contraseña incorrecta';

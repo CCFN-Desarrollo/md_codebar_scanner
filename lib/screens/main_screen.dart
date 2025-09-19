@@ -4,61 +4,45 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'password_screen.dart';
 import 'scanner_screen.dart';
 import '../utils/colors.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
   @override
-  _MainScreenState createState() => _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-// Variables de estado en _MainScreenState
 class _MainScreenState extends State<MainScreen> {
-  bool _isCheckingConfig = true; // Indica si está verificando configuración
-  bool _hasValidConfig = false; // Indica si la configuración es válida
-  bool _hasShownConfigDialog = false; // Evita múltiples dialogs
+  bool _isCheckingConfig = true;
+  bool _hasValidConfig = false;
 
   @override
   void initState() {
     super.initState();
-
-    _checkConfiguration(); // ← Llamada automática al iniciar
+    _checkConfiguration();
   }
 
-  void _navigateToScanner() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => ScannerScreen()),
-    );
-  }
-
-  // Método principal de verificación
   Future<void> _checkConfiguration({bool showDialogIfNeeded = true}) async {
-    /* final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(AppConstants.prefsSucursal); // elimina sucursal
-    await prefs.remove(AppConstants.prefsServidor); // elimina servidor*/
     try {
-      // Obtener SharedPreferences
       SharedPreferences prefs = await SharedPreferences.getInstance();
 
-      // Leer valores de configuración
       final sucursal = prefs.getString(AppConstants.prefsSucursal) ?? '';
       final servidor = prefs.getString(AppConstants.prefsServidor) ?? '';
 
-      // Verificar que ambos valores existan y no estén vacíos
       final hasValidConfig =
           sucursal.trim().isNotEmpty && servidor.trim().isNotEmpty;
 
-      // Actualizar estado si el widget sigue montado
       if (mounted) {
         setState(() {
           _hasValidConfig = hasValidConfig;
           _isCheckingConfig = false; // Termina la verificación
         });
 
-        if (hasValidConfig) {
+        /*if (hasValidConfig) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _navigateToScanner();
           });
-        }
+        }*/
       }
     } catch (e) {
       // Manejo de errores
@@ -133,7 +117,7 @@ class _MainScreenState extends State<MainScreen> {
                   color: AppColors.infoLight,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: AppColors.info.withOpacity(0.3),
+                    color: AppColors.info.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -211,9 +195,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
-      body: _isCheckingConfig
-          ? _buildLoadingScreen() // ← Pantalla de carga
-          : _buildMainContent(), // ← Contenido principal
+      body: _isCheckingConfig ? _buildLoadingScreen() : _buildMainContent(),
     );
   }
 
@@ -235,10 +217,10 @@ class _MainScreenState extends State<MainScreen> {
           Container(
             padding: EdgeInsets.all(30),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: AppColors.primary.withOpacity(0.2),
+                color: AppColors.primary.withValues(alpha: 0.2),
                 width: 2,
               ),
             ),
@@ -288,13 +270,13 @@ class _MainScreenState extends State<MainScreen> {
             padding: EdgeInsets.all(30),
             decoration: BoxDecoration(
               color: _hasValidConfig
-                  ? AppColors.primary.withOpacity(0.1)
-                  : AppColors.warning.withOpacity(0.1),
+                  ? AppColors.primary.withValues(alpha: 0.1)
+                  : AppColors.warning.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: _hasValidConfig
-                    ? AppColors.primary.withOpacity(0.2)
-                    : AppColors.warning.withOpacity(0.2),
+                    ? AppColors.primary.withValues(alpha: 0.2)
+                    : AppColors.warning.withValues(alpha: 0.2),
                 width: 2,
               ),
             ),
@@ -357,7 +339,7 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                         );
                       },
-                      icon: Icon(Icons.qr_code_scanner, size: 24),
+                      icon: Icon(Symbols.atr, size: 24),
                       label: Text(
                         'Escanear Producto',
                         style: TextStyle(
@@ -369,7 +351,7 @@ class _MainScreenState extends State<MainScreen> {
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         elevation: 3,
-                        shadowColor: AppColors.primary.withOpacity(0.3),
+                        shadowColor: AppColors.primary.withValues(alpha: 0.3),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
@@ -408,7 +390,7 @@ class _MainScreenState extends State<MainScreen> {
                         backgroundColor: AppColors.warning,
                         foregroundColor: Colors.white,
                         elevation: 3,
-                        shadowColor: AppColors.warning.withOpacity(0.3),
+                        shadowColor: AppColors.warning.withValues(alpha: 0.3),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
@@ -435,7 +417,7 @@ class _MainScreenState extends State<MainScreen> {
                 border: Border.all(
                   color: _hasValidConfig
                       ? Colors.grey[200]!
-                      : AppColors.warning.withOpacity(0.3),
+                      : AppColors.warning.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
