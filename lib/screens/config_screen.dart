@@ -188,11 +188,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
                       leading: Container(
                         padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color:
-                              isCurrentlySelected
-                                    ? AppColors.primaryLight
-                                    : AppColors.textSecondary
-                                ..withValues(alpha: 0.1),
+                          color: isCurrentlySelected
+                              ? AppColors.primaryLight
+                              : AppColors.textSecondary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Icon(
@@ -519,7 +517,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                           width: double.infinity,
                           padding: EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: AppColors.primary..withValues(alpha: 0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: AppColors.primary.withValues(alpha: 0.2),
@@ -575,7 +573,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey..withValues(alpha: 0.1),
+                                color: Colors.grey.withValues(alpha: 0.1),
                                 spreadRadius: 1,
                                 blurRadius: 10,
                                 offset: Offset(0, 2),
@@ -627,7 +625,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey..withValues(alpha: 0.1),
+                                color: Colors.grey.withValues(alpha: 0.1),
                                 spreadRadius: 1,
                                 blurRadius: 10,
                                 offset: Offset(0, 2),
@@ -683,7 +681,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey..withValues(alpha: 0.1),
+                                color: Colors.grey.withValues(alpha: 0.1),
                                 spreadRadius: 1,
                                 blurRadius: 10,
                                 offset: Offset(0, 2),
@@ -730,8 +728,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
                                   width: double.infinity,
                                   padding: EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primary
-                                      ..withValues(alpha: 0.1),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
                                       color: AppColors.primary.withValues(
@@ -893,7 +892,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                         Container(
                           padding: EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppColors.info..withValues(alpha: 0.1),
+                            color: AppColors.info.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: AppColors.info.withValues(alpha: 0.2),
@@ -1016,7 +1015,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                             width: double.infinity,
                             padding: EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppColors.success..withValues(alpha: 0.1),
+                              color: AppColors.success.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: AppColors.success.withValues(alpha: 0.2),
