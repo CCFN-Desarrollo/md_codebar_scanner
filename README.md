@@ -376,3 +376,35 @@ Si tienes preguntas o problemas:
 1. Revisa la sección de [Troubleshooting](#-troubleshooting)
 2. Busca en [Issues existentes](../../issues)
 3. Crea un [nuevo Issue](../../issues/new) si no encuentras solución
+
+## 📄NOTAS
+ - Intente usar flutter_blue_plus pero no pude encontrar la impresora con la que estoy trabajando al parecer es porque la impresora TSC usa otro puerto Bluetooth Serial Port Profile (SPP). Se modifico el servicio par apoder utilizar el package flutter_bluetooth_serial pero al ser un paquete viejo y sin mantenimiento(4 anos sin actualizacion) tenemos que modificar dos archivos: build.gradle y AndroidManifest.xml directamente de donde se instalo el paquete.
+ En mi caso:
+ ´´´
+ c
+ ´´´
+```bash
+# C:\Users\DESARROLLO\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_bluetooth_serial-0.4.0\android\build.gradle
+
+android {
+    namespace "com.shinow.qrscan.flutter_bluetooth_serial"
+    compileSdkVersion 33
+
+    defaultConfig {
+        minSdkVersion 21
+    }
+}
+
+```
+```bash
+# C:\Users\DESARROLLO\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_bluetooth_serial-0.4.0\android\build.gradle
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.github.edufolly.flutterbluetoothserial">
+
+# Dejar asi:
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+
+```
+
