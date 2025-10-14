@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:md_codebar_scanner/screens/config_screen.dart';
+import 'package:md_codebar_scanner/screens/login_screen.dart';
 import 'package:md_codebar_scanner/utils/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'password_screen.dart';
@@ -27,10 +29,10 @@ class _MainScreenState extends State<MainScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
 
       final sucursal = prefs.getString(AppConstants.prefsSucursal) ?? '';
-      final servidor = prefs.getString(AppConstants.prefsServidor) ?? '';
+      final impresora =
+          prefs.getString(AppConstants.prefsSelectedPrinterName) ?? '';
 
-      final hasValidConfig =
-          sucursal.trim().isNotEmpty && servidor.trim().isNotEmpty;
+      final hasValidConfig = sucursal.trim().isNotEmpty;
 
       if (mounted) {
         setState(() {
@@ -63,6 +65,64 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _recheckConfigurationSilently() async {
     await _checkConfiguration(showDialogIfNeeded: false);
+  }
+
+  // Función para cerrar sesión
+  Future<void> _logout() async {
+    // Mostrar diálogo de confirmación
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.logout, color: AppColors.error, size: 24),
+              SizedBox(width: 12),
+              Text('Cerrar Sesión'),
+            ],
+          ),
+          content: Text(
+            '¿Estás seguro de que deseas cerrar sesión?',
+            style: TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+              ),
+              child: Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              child: Text('Cerrar Sesión'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      // Limpiar la sesión
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', false);
+      await prefs.remove('username');
+
+      // Navegar al login
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+          (route) => false, // Elimina todas las rutas anteriores
+        );
+      }
+    }
   }
 
   // Dialog que se muestra cuando falta configuración
@@ -103,9 +163,9 @@ class _MainScreenState extends State<MainScreen> {
               SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.cloud, color: AppColors.primary, size: 16),
+                  Icon(Icons.print, color: AppColors.primary, size: 16),
                   SizedBox(width: 8),
-                  Text('Servidor API'),
+                  Text('Impresora'),
                 ],
               ),
               SizedBox(height: 16),
@@ -177,11 +237,12 @@ class _MainScreenState extends State<MainScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.settings),
+            tooltip: 'Configuración',
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => PasswordScreen(
+                  builder: (context) => ConfigScreen(
                     onConfigSaved: () {
                       _checkConfiguration(); // ← Actualiza MainScreen inmediatamente
                     },
@@ -192,6 +253,11 @@ class _MainScreenState extends State<MainScreen> {
                 _checkConfiguration();
               });
             },
+          ),
+          IconButton(
+            icon: Icon(Icons.logout),
+            tooltip: 'Cerrar Sesión',
+            onPressed: _logout,
           ),
         ],
       ),
@@ -308,7 +374,7 @@ class _MainScreenState extends State<MainScreen> {
           Text(
             _hasValidConfig
                 ? ''
-                : 'Configura la sucursal y servidor API\npara continuar',
+                : 'Configura la sucursal y la impresora\npara continuar',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[600],
@@ -368,7 +434,7 @@ class _MainScreenState extends State<MainScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => PasswordScreen(
+                            builder: (context) => ConfigScreen(
                               onConfigSaved: () {
                                 _checkConfiguration(); // Actualiza MainScreen inmediatamente
                               },
@@ -453,7 +519,7 @@ class _MainScreenState extends State<MainScreen> {
                         Text(
                           _hasValidConfig
                               ? 'Presiona "Escanear" para usar la cámara o "Entrada Manual" para escribir el código'
-                              : 'Es necesario configurar la sucursal y servidor API antes de usar la aplicación',
+                              : 'Es necesario configurar la sucursal e impresoar antes de usar la aplicación',
                           style: TextStyle(
                             fontSize: AppConstants.subtitleFontSize,
                             color: _hasValidConfig
