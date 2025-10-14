@@ -3,8 +3,8 @@ class AppConstants {
   static const String correctPassword = "Chivas.2020";
 
   // Claves de SharedPreferences
-  static const String prefsSucursal = 'sucursal';
-  static const String prefsServidor = 'servidor';
+  static const String prefsSucursal = '';
+  static const String prefsServidor = 'http://192.168.0.32:5099/api';
   static const String prefsSelectedPrinter = 'selectedPrinterAddress';
   static const String prefsSelectedPrinterName = 'selectedPrinterName';
 
@@ -12,9 +12,15 @@ class AppConstants {
   static const int notFoundDisplayDuration = 5; // seconds
   static const int scanAnimationDuration = 2; // seconds
 
-  // URLs y endpoints (para futuro uso)
-  static const String baseApiUrl = 'https://api.ejemplo.com';
+  // URLs y endpoints
+  static const String defaultServerApi =
+      'http://192.168.0.32:5099/api'; // Servidor API por defecto
+  static const String baseApiUrl = 'http://192.168.0.32:5099/api';
+  static const String loginEndpoint = '/Account/Login';
   static const String productEndpoint = '/products';
+
+  // Lista de sucursales disponibles
+  static const List<String> availableSucursales = ['S11', 'S16', 'S06'];
 
   // Configuraciones de la app
   static const String appName = 'Barcode Scanner';

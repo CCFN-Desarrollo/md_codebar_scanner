@@ -16,8 +16,10 @@ class ConfigScreen extends StatefulWidget {
 }
 
 class _ConfigScreenState extends State<ConfigScreen> {
-  final TextEditingController _sucursalController = TextEditingController();
-  final TextEditingController _servidorController = TextEditingController();
+  final TextEditingController _sucursalController =
+      TextEditingController(); // Cambiado de dropdown a TextField
+  bool _isSucursalFromLogin = false; // Indica si la sucursal viene del login
+  // El servidor API ya no se configura aquí, se usa el de constants
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _isSaving = false;
@@ -36,7 +38,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
   @override
   void dispose() {
     _sucursalController.dispose();
-    _servidorController.dispose();
     super.dispose();
   }
 
@@ -49,10 +50,23 @@ class _ConfigScreenState extends State<ConfigScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       if (mounted) {
         setState(() {
-          _sucursalController.text =
-              prefs.getString(AppConstants.prefsSucursal) ?? '';
-          _servidorController.text =
-              prefs.getString(AppConstants.prefsServidor) ?? '';
+          // Cargar sucursal guardada
+          String? savedSucursal = prefs.getString(AppConstants.prefsSucursal);
+
+          // Verificar si la sucursal viene del login (warehouseCode)
+          String? warehouseCode = prefs.getString('warehouseCode');
+
+          if (warehouseCode != null && warehouseCode.isNotEmpty) {
+            // Sucursal viene del login - no es modificable
+            _sucursalController.text = warehouseCode;
+            _isSucursalFromLogin = true;
+          } else if (savedSucursal != null && savedSucursal.isNotEmpty) {
+            // Sucursal guardada previamente - es modificable
+            _sucursalController.text = savedSucursal;
+            _isSucursalFromLogin = false;
+          }
+
+          // El servidor API se toma de constants, no se carga de prefs
 
           // Cargar configuración de impresora guardada
           _selectedPrinterAddress =
@@ -78,19 +92,28 @@ class _ConfigScreenState extends State<ConfigScreen> {
       return;
     }
 
+    // Validar que haya una sucursal ingresada
+    if (_sucursalController.text.trim().isEmpty) {
+      _showSnackBar('Por favor ingresa la sucursal', AppColors.warning);
+      return;
+    }
+
     setState(() {
       _isSaving = true;
     });
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
+      // Guardar sucursal ingresada
       await prefs.setString(
         AppConstants.prefsSucursal,
         _sucursalController.text.trim(),
       );
+
+      // Guardar el servidor API por defecto de constants
       await prefs.setString(
         AppConstants.prefsServidor,
-        _servidorController.text.trim(),
+        AppConstants.defaultServerApi,
       );
 
       // Guardar configuración de impresora
@@ -407,12 +430,23 @@ class _ConfigScreenState extends State<ConfigScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                setState(() {
-                  _sucursalController.clear();
-                  _servidorController.clear();
-                  _selectedPrinterAddress = '';
-                  _selectedPrinterName = '';
-                });
+                // Solo limpiar si la sucursal NO viene del login
+                if (!_isSucursalFromLogin) {
+                  setState(() {
+                    _sucursalController.clear();
+                    _selectedPrinterAddress = '';
+                    _selectedPrinterName = '';
+                  });
+                } else {
+                  setState(() {
+                    _selectedPrinterAddress = '';
+                    _selectedPrinterName = '';
+                  });
+                  _showSnackBar(
+                    'La sucursal no puede ser modificada porque viene del login',
+                    AppColors.info,
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.warning,
@@ -426,6 +460,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
     );
   }
 
+  // Ya no necesitamos validaciones de texto
+
   String? _validateSucursal(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'La sucursal es requerida';
@@ -433,29 +469,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
     if (value.trim().length < 2) {
       return 'La sucursal debe tener al menos 2 caracteres';
     }
-    return null;
-  }
-
-  String? _validateServidor(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'El servidor API es requerido';
-    }
-
-    // Validación básica de URL
-    // Validación básica de URL
-    final urlPattern = RegExp(
-      r'^(https?:\/\/)?'
-      r'((([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,})'
-      r'|((\d{1,3}\.){3}\d{1,3}))'
-      r'(:\d+)?'
-      r'(\/[^\s]*)?$',
-      caseSensitive: false,
-    );
-
-    if (!urlPattern.hasMatch(value.trim())) {
-      return 'Ingresa una URL válida (ej: https://api.ejemplo.com)';
-    }
-
     return null;
   }
 
@@ -557,7 +570,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
                         SizedBox(height: 32),
 
-                        // Campo Sucursal
+                        // Campo Sucursal (TextField)
                         Text(
                           'Información de Sucursal',
                           style: TextStyle(
@@ -567,9 +580,12 @@ class _ConfigScreenState extends State<ConfigScreen> {
                           ),
                         ),
                         SizedBox(height: 12),
+
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: _isSucursalFromLogin
+                                ? Colors.grey[100]
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
@@ -582,7 +598,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                           ),
                           child: TextFormField(
                             controller: _sucursalController,
-                            enabled: !_isSaving,
+                            enabled: !_isSaving && !_isSucursalFromLogin,
                             validator: _validateSucursal,
                             decoration: InputDecoration(
                               border: OutlineInputBorder(
@@ -590,64 +606,18 @@ class _ConfigScreenState extends State<ConfigScreen> {
                                 borderSide: BorderSide.none,
                               ),
                               filled: true,
-                              fillColor: Colors.white,
-                              labelText: 'Nombre de la Sucursal',
-                              hintText: 'Ej: Sucursal Centro',
+                              fillColor: _isSucursalFromLogin
+                                  ? Colors.grey[100]
+                                  : Colors.white,
+                              labelText: 'Sucursal',
+                              hintText: _isSucursalFromLogin
+                                  ? 'Sucursal del login'
+                                  : 'Ej: S11, S16, S06',
                               prefixIcon: Icon(
-                                Icons.store,
-                                color: AppColors.primary,
-                              ),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                            ),
-                            style: TextStyle(fontSize: 16),
-                            textCapitalization: TextCapitalization.words,
-                          ),
-                        ),
-
-                        SizedBox(height: 24),
-
-                        // Campo Servidor
-                        Text(
-                          'Configuración de Red',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withValues(alpha: 0.1),
-                                spreadRadius: 1,
-                                blurRadius: 10,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: TextFormField(
-                            controller: _servidorController,
-                            enabled: !_isSaving,
-                            validator: _validateServidor,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              labelText: 'Servidor API',
-                              hintText: 'https://api.ejemplo.com',
-                              prefixIcon: Icon(
-                                Icons.cloud,
-                                color: AppColors.primary,
+                                _isSucursalFromLogin ? Icons.lock : Icons.store,
+                                color: _isSucursalFromLogin
+                                    ? Colors.grey[600]
+                                    : AppColors.primary,
                               ),
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -656,9 +626,14 @@ class _ConfigScreenState extends State<ConfigScreen> {
                             ),
                             style: TextStyle(
                               fontSize: 16,
-                              fontFamily: 'monospace',
+                              color: _isSucursalFromLogin
+                                  ? Colors.grey[700]
+                                  : AppColors.textPrimary,
+                              fontWeight: _isSucursalFromLogin
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                             ),
-                            keyboardType: TextInputType.url,
+                            textCapitalization: TextCapitalization.characters,
                           ),
                         ),
 
@@ -922,10 +897,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                '• La configuración se guardará automáticamente en el dispositivo\n'
-                                '• El servidor API debe ser accesible desde esta red\n'
+                                '• La sucursal asignada en CRM es con la que se utilizará para revisar precios\n'
                                 '• La impresora debe estar emparejada por Bluetooth previamente\n'
-                                '• Estos datos se utilizarán para conectar con el sistema central',
+                                '• URL servidor API : ${AppConstants.defaultServerApi}',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: AppColors.info,
@@ -941,27 +915,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
                         // Botones de acción
                         Row(
                           children: [
-                            Expanded(
-                              child: SizedBox(
-                                height: 50,
-                                child: OutlinedButton.icon(
-                                  onPressed: _isSaving ? null : _resetForm,
-                                  icon: Icon(Icons.clear_all),
-                                  label: Text('Limpiar'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppColors.warning,
-                                    side: BorderSide(
-                                      color: AppColors.warning,
-                                      width: 2,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 16),
                             Expanded(
                               flex: 2,
                               child: SizedBox(
@@ -1008,71 +961,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
                         SizedBox(height: 20),
 
                         // Estado de configuración actual
-                        if (_sucursalController.text.isNotEmpty ||
-                            _servidorController.text.isNotEmpty ||
-                            _selectedPrinterAddress.isNotEmpty) ...[
-                          Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.success.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: AppColors.success.withValues(alpha: 0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.check_circle_outline,
-                                      color: AppColors.success,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Configuración Actual',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.success,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 8),
-                                if (_sucursalController.text.isNotEmpty)
-                                  Text(
-                                    'Sucursal: ${_sucursalController.text}',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.success,
-                                    ),
-                                  ),
-                                if (_servidorController.text.isNotEmpty)
-                                  Text(
-                                    'Servidor: ${_servidorController.text}',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.success,
-                                      fontFamily: 'monospace',
-                                    ),
-                                  ),
-                                if (_selectedPrinterAddress.isNotEmpty)
-                                  Text(
-                                    'Impresora: $_selectedPrinterName',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.success,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),
