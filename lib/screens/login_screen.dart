@@ -84,10 +84,12 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         // También actualizar la sucursal en la configuración
-        await prefs.setString(
-          AppConstants.prefsSucursal,
-          loginResponse.warehouseCode,
-        );
+        if (loginResponse.warehouseCode != 'S00') {
+          await prefs.setString(
+            AppConstants.prefsSucursal,
+            loginResponse.warehouseCode,
+          );
+        }
 
         if (mounted) {
           _showSnackBar(
@@ -135,9 +137,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildLogo() {
     // OPCIÓN 1: Usar imagen (descomenta cuando agregues tu imagen)
     return Image.asset(
-      'assets/images/logo.jpg', // Cambia por el nombre de tu imagen
-      width: 164,
-      height: 164,
+      'assets/images/logo_blue.jpg', // Cambia por el nombre de tu imagen
+      width: 184,
+      height: 184,
       fit: BoxFit.contain,
     );
   }
@@ -194,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Logo o icono de la app
                   Container(
-                    padding: EdgeInsets.all(24),
+                    padding: EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
@@ -223,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Escáner de Código de Barras',
+                    'Escáner de Código de Barras...',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.white.withValues(alpha: 0.9),
@@ -464,7 +466,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Versión de la app
                   Text(
-                    _appVersion.isEmpty ? 'Cargando...' : 'Versión $_appVersion',
+                    _appVersion.isEmpty
+                        ? 'Cargando...'
+                        : 'Versión $_appVersion',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
