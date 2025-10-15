@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:md_codebar_scanner/screens/login_screen.dart';
 import 'package:md_codebar_scanner/screens/main_screen.dart';
+import 'package:md_codebar_scanner/services/app_update_service.dart';
 import 'package:md_codebar_scanner/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,7 +15,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Escáner de Código de Barras',
+      title: 'Escáner de Código de Barras..',
       theme: AppTheme.lightTheme,
       home: SplashScreen(), // Pantalla de carga inicial
       debugShowCheckedModeBanner: false,
@@ -41,6 +42,21 @@ class _SplashScreenState extends State<SplashScreen> {
     // Pequeña pausa para mostrar el splash
     await Future.delayed(Duration(milliseconds: 500));
 
+    // PRIMERO: Verificar si hay actualizaciones
+    final updateResult = await AppUpdateService.checkForUpdate();
+
+    if (updateResult['success'] && updateResult['hasUpdate']) {
+      // HAY ACTUALIZACIÓN DISPONIBLE
+      if (mounted) {
+        await AppUpdateService.showUpdateDialog(
+          context,
+          updateResult['currentVersion'],
+          updateResult['serverVersion'],
+        );
+      }
+    }
+
+    // SEGUNDO: Verificar login (solo si no se está actualizando)
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
@@ -68,10 +84,7 @@ class _SplashScreenState extends State<SplashScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF1976D2),
-              Color(0xFF1565C0),
-            ],
+            colors: [Color(0xFF1976D2), Color(0xFF1565C0)],
           ),
         ),
         child: Center(

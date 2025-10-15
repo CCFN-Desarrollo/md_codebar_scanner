@@ -24,7 +24,8 @@ class AppConstants {
 
   // Configuraciones de la app
   static const String appName = 'Barcode Scanner';
-  static const String appVersion = '1.0.0';
+  // NOTA: La versión se lee automáticamente de pubspec.yaml usando package_info_plus
+  // No es necesario duplicarla aquí
 
   // Mensajes de error
   static const String errorIncorrectPassword = 'Contraseña incorrecta';

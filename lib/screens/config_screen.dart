@@ -55,6 +55,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
           // Verificar si la sucursal viene del login (warehouseCode)
           String? warehouseCode = prefs.getString('warehouseCode');
+          warehouseCode = warehouseCode == 'S00' ? '' : warehouseCode;
 
           if (warehouseCode != null && warehouseCode.isNotEmpty) {
             // Sucursal viene del login - no es modificable
