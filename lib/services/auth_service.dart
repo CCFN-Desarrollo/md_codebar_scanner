@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:http/http.dart' as http;
+import 'package:md_codebar_scanner/utils/storage_helper.dart';
 import '../models/login_model.dart';
 import '../utils/constants.dart';
 
@@ -11,10 +12,9 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    String baseApiUrl = await StorageHelper.getServidor();
     try {
-      final url = Uri.parse(
-        '${AppConstants.baseApiUrl}${AppConstants.loginEndpoint}',
-      );
+      final url = Uri.parse('${baseApiUrl}${AppConstants.loginEndpoint}');
 
       log('🔵 Intentando login a: $url');
       log('📧 Email: $email');

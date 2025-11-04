@@ -2,9 +2,9 @@ class AppConstants {
   // Autenticación
   static const String correctPassword = "Chivas.2020";
 
-  // Claves de SharedPreferences
-  static const String prefsSucursal = '';
-  static const String prefsServidor = 'http://192.168.0.32:5099/api';
+  // Claves de SharedPreferences (son solo las CLAVES, no los valores)
+  static const String prefsSucursal = 'sucursal_key';
+  static const String prefsServidor = 'servidor_key';
   static const String prefsSelectedPrinter = 'selectedPrinterAddress';
   static const String prefsSelectedPrinterName = 'selectedPrinterName';
 
@@ -13,9 +13,7 @@ class AppConstants {
   static const int scanAnimationDuration = 2; // seconds
 
   // URLs y endpoints
-  static const String defaultServerApi =
-      'http://192.168.0.32:5099/api'; // Servidor API por defecto
-  static const String baseApiUrl = 'http://192.168.0.32:5099/api';
+  static const String defaultServerApi = 'http://192.168.0.32:8886/api'; // Servidor API por defecto
   static const String loginEndpoint = '/Account/Login';
   static const String productEndpoint = '/products';
 

@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:http/http.dart' as http;
 import '../utils/colors.dart';
-import '../utils/constants.dart';
 
 class DebugLogScreen extends StatefulWidget {
   const DebugLogScreen({super.key});
@@ -69,7 +68,8 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
 
     try {
       // URL del archivo de versión
-      final versionUrl = 'http://crm.ccfnweb.com.mx/sap10/MD_CODEBAR_SCANNER_VERSION.text';
+      final versionUrl =
+          'http://crm.ccfnweb.com.mx/sap10/MD_CODEBAR_SCANNER_VERSION.text';
       _addLog('🌐 URL: $versionUrl');
 
       // Obtener versión actual
@@ -81,12 +81,16 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
 
       // Hacer petición al servidor
       _addLog('📡 Consultando servidor...');
-      final response = await http.get(Uri.parse(versionUrl)).timeout(
-        Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('Timeout - El servidor no respondió en 10 segundos');
-        },
-      );
+      final response = await http
+          .get(Uri.parse(versionUrl))
+          .timeout(
+            Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception(
+                'Timeout - El servidor no respondió en 10 segundos',
+              );
+            },
+          );
 
       _addLog('📥 Status Code: ${response.statusCode}');
 
@@ -98,7 +102,7 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
 
         // Comparar versiones
         final needsUpdate = _compareVersions(_currentVersion, _serverVersion);
-        
+
         if (needsUpdate) {
           _addLog('🎉 ¡HAY ACTUALIZACIÓN DISPONIBLE!');
           _addLog('📦 $_currentVersion → $_serverVersion');
@@ -111,9 +115,11 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
       }
     } catch (e) {
       _addLog('❌ Error: $e');
-      
+
       if (e.toString().contains('SocketException')) {
-        _addLog('🌐 No hay conexión a internet o el servidor no está disponible');
+        _addLog(
+          '🌐 No hay conexión a internet o el servidor no está disponible',
+        );
       } else if (e.toString().contains('Timeout')) {
         _addLog('⏱️ Tiempo de espera agotado');
       }
@@ -127,19 +133,23 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
   bool _compareVersions(String current, String server) {
     try {
       _addLog('🔍 Comparando: "$current" vs "$server"');
-      
+
       List<int> currentParts = current.split('.').map(int.parse).toList();
       List<int> serverParts = server.split('.').map(int.parse).toList();
-      
+
       _addLog('🔍 Current parts: $currentParts');
       _addLog('🔍 Server parts: $serverParts');
 
       for (int i = 0; i < serverParts.length; i++) {
         if (i < currentParts.length) {
-          _addLog('🔍 Comparando posición $i: ${serverParts[i]} vs ${currentParts[i]}');
-          
+          _addLog(
+            '🔍 Comparando posición $i: ${serverParts[i]} vs ${currentParts[i]}',
+          );
+
           if (serverParts[i] > currentParts[i]) {
-            _addLog('✅ ${serverParts[i]} > ${currentParts[i]} = ACTUALIZACIÓN DISPONIBLE');
+            _addLog(
+              '✅ ${serverParts[i]} > ${currentParts[i]} = ACTUALIZACIÓN DISPONIBLE',
+            );
             return true;
           }
           if (serverParts[i] < currentParts[i]) {
@@ -149,7 +159,9 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
           _addLog('➡️ ${serverParts[i]} == ${currentParts[i]} = CONTINUAR');
         } else {
           if (serverParts[i] > 0) {
-            _addLog('✅ Versión servidor tiene más partes = ACTUALIZACIÓN DISPONIBLE');
+            _addLog(
+              '✅ Versión servidor tiene más partes = ACTUALIZACIÓN DISPONIBLE',
+            );
             return true;
           }
         }
@@ -200,7 +212,10 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
                 ),
                 SizedBox(height: 8),
                 _buildInfoRow('Versión Actual', _currentVersion),
-                _buildInfoRow('Versión Servidor', _serverVersion.isEmpty ? 'No consultado' : _serverVersion),
+                _buildInfoRow(
+                  'Versión Servidor',
+                  _serverVersion.isEmpty ? 'No consultado' : _serverVersion,
+                ),
                 _buildInfoRow('Logueado', _isLoggedIn ? 'Sí' : 'No'),
                 _buildInfoRow('Usuario', _username),
                 _buildInfoRow('Sucursal', _warehouseCode),
@@ -222,7 +237,9 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : Icon(Icons.refresh),
@@ -279,7 +296,7 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
                       final log = _logs[index];
                       Color logColor = AppColors.textPrimary;
                       IconData logIcon = Icons.circle;
-                      
+
                       if (log.contains('❌') || log.contains('Error')) {
                         logColor = AppColors.error;
                         logIcon = Icons.error_outline;
@@ -308,11 +325,7 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              logIcon,
-                              size: 18,
-                              color: logColor,
-                            ),
+                            Icon(logIcon, size: 18, color: logColor),
                             SizedBox(width: 12),
                             Expanded(
                               child: Text(
