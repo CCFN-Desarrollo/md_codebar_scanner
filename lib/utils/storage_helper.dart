@@ -19,6 +19,6 @@ class StorageHelper {
 
   static Future<String> getServidor() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(AppConstants.prefsServidor) ?? '';
+    return prefs.getString(AppConstants.prefsServidor) ?? AppConstants.defaultServerApi;
   }
 }

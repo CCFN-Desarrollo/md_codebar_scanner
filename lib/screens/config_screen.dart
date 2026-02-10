@@ -402,67 +402,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
     }
   }
 
-  void _resetForm() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.warning_amber, color: AppColors.warning),
-              SizedBox(width: 12),
-              Text('Confirmar'),
-            ],
-          ),
-          content: Text(
-            '¿Estás seguro de que quieres limpiar todos los campos?',
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.textSecondary,
-              ),
-              child: Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // Solo limpiar si la sucursal NO viene del login
-                if (!_isSucursalFromLogin) {
-                  setState(() {
-                    _sucursalController.clear();
-                    _selectedPrinterAddress = '';
-                    _selectedPrinterName = '';
-                  });
-                } else {
-                  setState(() {
-                    _selectedPrinterAddress = '';
-                    _selectedPrinterName = '';
-                  });
-                  _showSnackBar(
-                    'La sucursal no puede ser modificada porque viene del login',
-                    AppColors.info,
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.warning,
-                foregroundColor: Colors.white,
-              ),
-              child: Text('Limpiar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // Ya no necesitamos validaciones de texto
-
   String? _validateSucursal(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'La sucursal es requerida';

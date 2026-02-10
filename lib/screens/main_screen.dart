@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:md_codebar_scanner/screens/config_screen.dart';
 import 'package:md_codebar_scanner/screens/login_screen.dart';
-import 'package:md_codebar_scanner/screens/debug_log_screen.dart';
 import 'package:md_codebar_scanner/utils/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'password_screen.dart';
@@ -30,8 +29,6 @@ class _MainScreenState extends State<MainScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
 
       final sucursal = prefs.getString(AppConstants.prefsSucursal) ?? '';
-      final impresora =
-          prefs.getString(AppConstants.prefsSelectedPrinterName) ?? '';
 
       final hasValidConfig = sucursal.trim().isNotEmpty;
 
