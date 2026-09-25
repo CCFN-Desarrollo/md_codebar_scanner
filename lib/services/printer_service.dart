@@ -11,6 +11,17 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product_model.dart';
 import '../utils/constants.dart';
+import 'zebra_print_service.dart';
+
+enum PrinterType {
+  bluetooth,
+  endpoint;
+
+  static PrinterType fromString(String? value) =>
+      value == PrinterType.endpoint.name
+      ? PrinterType.endpoint
+      : PrinterType.bluetooth;
+}
 
 class PrinterService {
   static BluetoothConnection? _connection;
@@ -374,11 +385,94 @@ CLS
     }
   }
 
-  static Future<bool> hasPrinterConfigured() async {
+  static Future<PrinterType> getPrinterType() async {
     final prefs = await SharedPreferences.getInstance();
-    final selectedPrinterAddress =
-        prefs.getString(AppConstants.prefsSelectedPrinter) ?? '';
-    return selectedPrinterAddress.isNotEmpty;
+    return PrinterType.fromString(
+      prefs.getString(AppConstants.prefsPrinterType),
+    );
+  }
+
+  static Future<bool> hasPrinterConfigured() async {
+    final printerInfo = await getPrinterInfo();
+    return printerInfo['address']!.isNotEmpty;
+  }
+
+  /// Imprime la etiqueta del producto con el tipo de impresora configurado.
+  /// `canConfigure: true` indica que el error amerita ir a la configuración.
+  static Future<Map<String, dynamic>> printLabel(
+    Product product,
+    int front,
+    int copies,
+  ) async {
+    final type = await getPrinterType();
+
+    if (type == PrinterType.endpoint) {
+      final printerInfo = await getPrinterInfo();
+      final result = await ZebraPrintService.sendZpl(
+        printerInfo['address']!,
+        ZebraPrintService.buildProductLabelZpl(product, front, copies),
+      );
+      return {...result, 'canConfigure': !result['success']};
+    }
+
+    final printerDevice = await getConfiguredPrinter();
+    if (printerDevice == null) {
+      return {
+        'success': false,
+        'message': 'No hay impresora configurada',
+        'canConfigure': true,
+      };
+    }
+
+    final connectResult = await connectToPrinter(printerDevice);
+    if (!connectResult['success']) {
+      return {
+        'success': false,
+        'message':
+            'No fue posible conectarse con la impresora. Verifique que esté encendida y disponible.',
+        'canConfigure': true,
+      };
+    }
+
+    try {
+      return await printProductLabel(product, front, copies);
+    } finally {
+      await _safeDisconnect();
+    }
+  }
+
+  /// Conecta, imprime la etiqueta de prueba y desconecta del dispositivo indicado.
+  static Future<Map<String, dynamic>> printTestBluetooth(
+    BluetoothDevice device,
+  ) async {
+    final connectResult = await connectToPrinter(device);
+    if (!connectResult['success']) {
+      return {
+        'success': false,
+        'message': 'Error de conexión: ${connectResult['message']}',
+      };
+    }
+
+    try {
+      return await printTestLabel();
+    } finally {
+      await _safeDisconnect();
+    }
+  }
+
+  static Future<void> _safeDisconnect() async {
+    try {
+      await disconnect().timeout(
+        Duration(seconds: 2),
+        onTimeout: () {
+          log('Timeout en disconnect, usando forceDisconnect...');
+          forceDisconnect();
+        },
+      );
+    } catch (e) {
+      log('Error al desconectar: $e');
+      await forceDisconnect();
+    }
   }
 
   static Future<Map<String, dynamic>> checkBluetoothStatus() async {
@@ -460,6 +554,14 @@ CLS
 
   static Future<Map<String, String>> getPrinterInfo() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    final type = PrinterType.fromString(
+      prefs.getString(AppConstants.prefsPrinterType),
+    );
+    if (type == PrinterType.endpoint) {
+      final url = prefs.getString(AppConstants.prefsPrintServiceUrl) ?? '';
+      return {'address': url, 'name': 'Servicio de impresión ($url)'};
+    }
 
     return {
       'address': prefs.getString(AppConstants.prefsSelectedPrinter) ?? '',

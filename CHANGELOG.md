@@ -7,6 +7,21 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [1.2.0] - 2026-09-24
+
+### 🎉 Agregado
+- **Impresión por servicio (Scanner Agent / Zebra)** (#12)
+  - Nuevo tipo de impresora "Servicio": envía la etiqueta en ZPL a `POST http://<ip-pc>:8100/print/zebra`
+  - Botón **Verificar** que consulta `GET /status` y valida que el agente tenga `agent_role` `zebra` o `all`
+  - Botón **Probar** que imprime una etiqueta de prueba en la Zebra
+  - URL del servicio configurable por dispositivo (una PC por tienda); se rechaza `localhost`
+  - Diseño de etiqueta ZPL para ZD421 (203 dpi) ajustado a la etiqueta preimpresa "Precio SuperChivas": precio grande, descripción en dos líneas cortando por palabra, Code128 ancho y centrado, frente y fecha
+  - Pruebas unitarias del generador ZPL y del cliente HTTP
+
+### 🔧 Cambiado
+- La configuración de impresora ahora permite elegir **Bluetooth** o **Servicio** (componente `PrinterSettingsCard` compartido por las dos pantallas de configuración)
+- `PrinterService.printLabel` decide el tipo de impresión; la pantalla de detalle ya no maneja la conexión Bluetooth directamente
+
 ## [1.1.0] - 2024-10-14
 
 ### 🎉 Agregado

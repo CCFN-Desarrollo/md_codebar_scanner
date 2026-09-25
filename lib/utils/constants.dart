@@ -7,15 +7,24 @@ class AppConstants {
   static const String prefsServidor = 'servidor_key';
   static const String prefsSelectedPrinter = 'selectedPrinterAddress';
   static const String prefsSelectedPrinterName = 'selectedPrinterName';
+  static const String prefsPrinterType = 'printerType'; // bluetooth | endpoint
+  static const String prefsPrintServiceUrl = 'printServiceUrl';
 
   // Configuración UI
   static const int notFoundDisplayDuration = 5; // seconds
   static const int scanAnimationDuration = 2; // seconds
 
   // URLs y endpoints
-  static const String defaultServerApi = 'http://192.168.0.32:8886/api'; // Servidor API por defecto
+  static const String defaultServerApi =
+      'http://192.168.0.32:8886/api'; // Servidor API por defecto
   static const String loginEndpoint = '/Account/Login';
   static const String productEndpoint = '/products';
+
+  // Servicio de impresión Zebra (Scanner Agent, una PC por tienda)
+  static const int defaultPrintServicePort = 8100;
+  static const String printZebraEndpoint = '/print/zebra';
+  static const String printStatusEndpoint = '/status';
+  static const int printServiceTimeout = 10; // seconds
 
   // Lista de sucursales disponibles
   static const List<String> availableSucursales = ['S11', 'S16', 'S06'];
