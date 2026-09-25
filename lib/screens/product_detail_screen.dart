@@ -529,67 +529,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     PrintProgressDialog.show(context, printerName);
 
     try {
-      final printerDevice = await PrinterService.getConfiguredPrinter();
-
-      if (printerDevice == null) {
-        await PrinterService.showPrinterNotConfiguredMessage(
-          context,
-          'No hay impresora configurada',
-        );
-        PrintProgressDialog.close();
-        return;
-      }
-
-      final connectedDevice = await PrinterService.connectToPrinter(
-        printerDevice,
-      );
-
-      if (!connectedDevice['success']) {
-        if (!mounted) return;
-
-        await PrinterService.showPrinterNotConfiguredMessage(
-          context,
-          'No fue posible conectarse con la impresora. Verifique que esté encendida y disponible.',
-        );
-        PrintProgressDialog.close();
-        return;
-      }
-
-      final result = await PrinterService.printProductLabel(
+      final result = await PrinterService.printLabel(
         product,
         frontNumber.round(),
         copies.round(),
       );
+
+      if (!context.mounted) return;
 
       if (result['success']) {
         MessageUtils.showSuccessMessage(
           context,
           'Etiqueta impresa correctamente',
         );
+      } else if (result['canConfigure'] == true) {
+        await PrinterService.showPrinterNotConfiguredMessage(
+          context,
+          result['message'] ?? 'Error al imprimir',
+        );
       } else {
         MessageUtils.showErrorMessage(
           context,
           result['message'] ?? 'Error al imprimir',
         );
-      }
-      if (PrinterService.isConnected) {
-        try {
-          await PrinterService.disconnect().timeout(
-            Duration(seconds: 2),
-            onTimeout: () {
-              log('⚠️ Timeout en disconnect, usando forceDisconnect...');
-              PrinterService.forceDisconnect();
-            },
-          );
-          log('✅ Desconexión completada');
-        } catch (disconnectError) {
-          log('⚠️ Error al desconectar: $disconnectError');
-          try {
-            await PrinterService.forceDisconnect();
-          } catch (e) {
-            log('❌ Error en forceDisconnect: $e');
-          }
-        }
       }
     } catch (e) {
       if (mounted) {
