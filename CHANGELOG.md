@@ -7,6 +7,25 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [2.0.0] - 2026-10-01
+
+### 🎉 Agregado
+- **Impresión en lote** para re-etiquetación masiva (#14)
+  - Nuevo botón **Impresión en Lote** en la pantalla principal (visible para todos los perfiles)
+  - Escaneo continuo: la cámara no se cierra; cada código se agrega al instante y el producto se consulta en segundo plano. También acepta captura manual o lector de hardware
+  - Re-escanear un producto suma +1 impresión (tope 10); otro código de barras del mismo artículo se fusiona
+  - Pantalla **Revisar Lote**: frente e impresiones editables por producto (1 por defecto, máximo 10), **Aplicar a todos**, quitar productos y reintentar los no encontrados
+  - Un solo botón imprime todo con progreso *x de N*; en Bluetooth se conecta una sola vez y en el servicio Zebra se envían bloques de 10 productos por request
+  - Si la impresión falla a medias, se quitan de la lista los productos ya impresos para reintentar solo los pendientes
+  - La lista se guarda en el dispositivo y se conserva al cerrar la app; botón **Eliminar lista** con confirmación
+  - Selector **Cámara | Lector / Teclado** (se recuerda por dispositivo): en modo cámara no se muestra el campo de texto ni el teclado; en modo lector se oculta la cámara y el lector óptico escribe sin abrir el teclado en pantalla (botón para mostrarlo y capturar a mano)
+  - Lector óptico: el código se agrega solo, sin tocar botones, tanto si el lector manda Enter/Tab como si no manda sufijo (se detecta el fin de la ráfaga de teclas)
+  - Beep al detectar un código y tono de error cuando el producto no existe o se alcanza el máximo de impresiones (suena aunque el teléfono esté en silencio)
+
+### 🔧 Cambiado
+- Toolchain Android actualizado para Flutter 3.47: Gradle 8.14, Android Gradle Plugin 8.11.1, Kotlin 2.2.20
+- `material_symbols_icons` 4.2960.0 (la versión anterior no compila con Flutter 3.47)
+
 ## [1.2.0] - 2026-09-24
 
 ### 🎉 Agregado

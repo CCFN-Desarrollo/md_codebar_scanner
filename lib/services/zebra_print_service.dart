@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import '../models/batch_label_item.dart';
 import '../models/product_model.dart';
 import '../utils/constants.dart';
 
@@ -67,6 +68,15 @@ class ZebraPrintService {
       footer: 'F$front  f $date',
       copies: copies,
     );
+  }
+
+  /// Un formato `^XA…^XZ` por producto; la Zebra los imprime en secuencia.
+  static String buildBatchZpl(List<BatchLabelItem> items, {DateTime? now}) {
+    return items
+        .map(
+          (i) => buildProductLabelZpl(i.product!, i.front, i.copies, now: now),
+        )
+        .join('\n');
   }
 
   static String buildTestLabelZpl({DateTime? now}) {
@@ -222,6 +232,47 @@ class ZebraPrintService {
       return {
         'success': false,
         'message': 'Error al imprimir: ${e.toString()}',
+      };
+    } finally {
+      if (client == null) httpClient.close();
+    }
+  }
+
+  /// Envía el lote en bloques de [chunkSize] productos. Se detiene en el primer
+  /// bloque que falle; `printedCount` indica cuántos productos (en orden) se
+  /// enviaron correctamente.
+  static Future<Map<String, dynamic>> sendBatch(
+    String baseUrl,
+    List<BatchLabelItem> items, {
+    void Function(int printed, int total)? onProgress,
+    int chunkSize = AppConstants.batchZplChunkSize,
+    http.Client? client,
+    DateTime? now,
+  }) async {
+    final httpClient = client ?? http.Client();
+    var printed = 0;
+
+    try {
+      for (var start = 0; start < items.length; start += chunkSize) {
+        final chunk = items.skip(start).take(chunkSize).toList();
+        final result = await sendZpl(
+          baseUrl,
+          buildBatchZpl(chunk, now: now),
+          client: httpClient,
+        );
+
+        if (result['success'] != true) {
+          return {...result, 'printedCount': printed};
+        }
+
+        printed += chunk.length;
+        onProgress?.call(printed, items.length);
+      }
+
+      return {
+        'success': true,
+        'message': 'Etiquetas enviadas correctamente',
+        'printedCount': printed,
       };
     } finally {
       if (client == null) httpClient.close();
