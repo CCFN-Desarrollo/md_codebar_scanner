@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:md_codebar_scanner/models/batch_label_item.dart';
 import 'package:md_codebar_scanner/models/product_model.dart';
 import 'package:md_codebar_scanner/services/zebra_print_service.dart';
 
@@ -74,6 +75,33 @@ void main() {
       expect(zpl, contains('^FB390,1,0,C^A0N,26,22^FH^FD7501055300075^FS'));
       expect(zpl, contains('^FDF3  f 24/09/2026^FS'));
       expect(zpl, contains('^PQ2'));
+    });
+
+    test('precio más grande y en "negrita" (doble impresión desplazada)', () {
+      final zpl = ZebraPrintService.buildProductLabelZpl(
+        _product(),
+        1,
+        1,
+        now: now,
+      );
+
+      expect(zpl, contains('^FO10,26^A0N,100,46^FH^FD\$ 18.50^FS'));
+      expect(zpl, contains('^FO12,26^A0N,100,46^FH^FD\$ 18.50^FS'));
+    });
+
+    test('precios de 4 dígitos conservan el ancho anterior', () {
+      final zpl = ZebraPrintService.buildProductLabelZpl(
+        Product.empty().copyWith(
+          itemName: 'PANTALLA',
+          codeBar: '7501055300075',
+          priceWithTax: 1234.5,
+        ),
+        1,
+        1,
+        now: now,
+      );
+
+      expect(zpl, contains('^A0N,100,40^FH^FD\$ 1234.50^FS'));
     });
 
     test('divide la descripción en dos líneas respetando palabras', () {
@@ -197,6 +225,79 @@ void main() {
 
       expect(result['success'], isFalse);
       expect(result['message'], contains('No se pudo contactar'));
+    });
+  });
+
+  group('sendBatch', () {
+    List<BatchLabelItem> items(int count) => List.generate(
+      count,
+      (i) => BatchLabelItem(
+        code: '75010553000$i',
+        product: _product(name: 'PRODUCTO $i', code: '75010553000$i'),
+        status: BatchItemStatus.ready,
+        front: 2,
+        copies: i + 1,
+      ),
+    );
+
+    test('un formato ^XA…^XZ por producto con su frente y copias', () {
+      final zpl = ZebraPrintService.buildBatchZpl(items(3), now: now);
+
+      expect('^XA'.allMatches(zpl), hasLength(3));
+      expect('^XZ'.allMatches(zpl), hasLength(3));
+      expect(zpl, contains('^FDPRODUCTO 2^FS'));
+      expect(zpl, contains('^PQ3'));
+      expect(zpl, contains('^FDF2  f 24/09/2026^FS'));
+    });
+
+    test('envía en bloques y reporta progreso', () async {
+      final bodies = <String>[];
+      final client = MockClient((request) async {
+        bodies.add(jsonDecode(request.body)['zpl']);
+        return http.Response(jsonEncode({'ok': true}), 200);
+      });
+      final progress = <int>[];
+
+      final result = await ZebraPrintService.sendBatch(
+        '192.168.0.10',
+        items(25),
+        chunkSize: 10,
+        client: client,
+        onProgress: (printed, total) => progress.add(printed),
+      );
+
+      expect(result['success'], isTrue);
+      expect(result['printedCount'], 25);
+      expect(bodies.map((b) => '^XA'.allMatches(b).length), [10, 10, 5]);
+      expect(progress, [10, 20, 25]);
+    });
+
+    test('se detiene en el primer bloque fallido', () async {
+      var calls = 0;
+      final client = MockClient((_) async {
+        calls++;
+        return calls == 2
+            ? http.Response(
+                jsonEncode({
+                  'ok': false,
+                  'error': {'message': 'Sin papel'},
+                }),
+                500,
+              )
+            : http.Response(jsonEncode({'ok': true}), 200);
+      });
+
+      final result = await ZebraPrintService.sendBatch(
+        '192.168.0.10',
+        items(25),
+        chunkSize: 10,
+        client: client,
+      );
+
+      expect(calls, 2);
+      expect(result['success'], isFalse);
+      expect(result['printedCount'], 10);
+      expect(result['message'], 'Sin papel');
     });
   });
 

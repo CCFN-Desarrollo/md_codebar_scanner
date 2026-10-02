@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import '../models/batch_label_item.dart';
 import '../models/product_model.dart';
 import '../utils/constants.dart';
 
@@ -19,6 +20,16 @@ class ZebraPrintService {
   // Área blanca a la derecha del precio / logo preimpreso
   static const int rightAreaX = 195;
   static const int rightAreaWidth = 390;
+
+  // Precio a la izquierda (~180 dots libres antes de la descripción)
+  static const int priceX = 10;
+  static const int priceY = 26;
+  static const int priceFontHeight = 100;
+  static const int priceFontWidth = 46;
+  // Precios de 4+ dígitos ("$ 1234.50") conservan el ancho anterior
+  static const int priceFontWidthLong = 40;
+  static const int priceShortMaxChars = 8; // "$ 999.99"
+  static const int priceBoldOffset = 2;
 
   /// Normaliza lo que captura el usuario a `http://host:puerto`.
   /// Acepta "192.168.0.10", "192.168.0.10:8100" o la URL completa de /print/zebra.
@@ -69,6 +80,15 @@ class ZebraPrintService {
     );
   }
 
+  /// Un formato `^XA…^XZ` por producto; la Zebra los imprime en secuencia.
+  static String buildBatchZpl(List<BatchLabelItem> items, {DateTime? now}) {
+    return items
+        .map(
+          (i) => buildProductLabelZpl(i.product!, i.front, i.copies, now: now),
+        )
+        .join('\n');
+  }
+
   static String buildTestLabelZpl({DateTime? now}) {
     final date = DateFormat('dd/MM/yyyy').format(now ?? DateTime.now());
     return _buildLabel(
@@ -94,8 +114,18 @@ class ZebraPrintService {
     buffer.writeln('^LL$labelHeightDots');
     buffer.writeln('^LH0,0');
 
-    // Precio grande; arriba del logo preimpreso "Precio SuperChivas"
-    buffer.writeln('^FO10,30^A0N,90,40^FH^FD${_escape(price)}^FS');
+    // Precio grande; arriba del logo preimpreso "Precio SuperChivas".
+    // La fuente A0 no tiene negrita: se imprime dos veces desplazado
+    // [priceBoldOffset] dots para engrosar el trazo.
+    final priceWidth = price.length <= priceShortMaxChars
+        ? priceFontWidth
+        : priceFontWidthLong;
+    for (final dx in [0, priceBoldOffset]) {
+      buffer.writeln(
+        '^FO${priceX + dx},$priceY'
+        '^A0N,$priceFontHeight,$priceWidth^FH^FD${_escape(price)}^FS',
+      );
+    }
 
     // Descripción en máximo dos líneas
     final lines = _splitTwoLines(description, maxCharsPerLine);
@@ -222,6 +252,47 @@ class ZebraPrintService {
       return {
         'success': false,
         'message': 'Error al imprimir: ${e.toString()}',
+      };
+    } finally {
+      if (client == null) httpClient.close();
+    }
+  }
+
+  /// Envía el lote en bloques de [chunkSize] productos. Se detiene en el primer
+  /// bloque que falle; `printedCount` indica cuántos productos (en orden) se
+  /// enviaron correctamente.
+  static Future<Map<String, dynamic>> sendBatch(
+    String baseUrl,
+    List<BatchLabelItem> items, {
+    void Function(int printed, int total)? onProgress,
+    int chunkSize = AppConstants.batchZplChunkSize,
+    http.Client? client,
+    DateTime? now,
+  }) async {
+    final httpClient = client ?? http.Client();
+    var printed = 0;
+
+    try {
+      for (var start = 0; start < items.length; start += chunkSize) {
+        final chunk = items.skip(start).take(chunkSize).toList();
+        final result = await sendZpl(
+          baseUrl,
+          buildBatchZpl(chunk, now: now),
+          client: httpClient,
+        );
+
+        if (result['success'] != true) {
+          return {...result, 'printedCount': printed};
+        }
+
+        printed += chunk.length;
+        onProgress?.call(printed, items.length);
+      }
+
+      return {
+        'success': true,
+        'message': 'Etiquetas enviadas correctamente',
+        'printedCount': printed,
       };
     } finally {
       if (client == null) httpClient.close();

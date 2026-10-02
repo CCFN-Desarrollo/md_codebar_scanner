@@ -9,6 +9,7 @@ import 'package:md_codebar_scanner/screens/config_printer_screen.dart';
 import 'package:md_codebar_scanner/utils/colors.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/batch_label_item.dart';
 import '../models/product_model.dart';
 import '../utils/constants.dart';
 import 'zebra_print_service.dart';
@@ -436,6 +437,73 @@ CLS
 
     try {
       return await printProductLabel(product, front, copies);
+    } finally {
+      await _safeDisconnect();
+    }
+  }
+
+  /// Imprime un lote con el tipo de impresora configurado. En Bluetooth se
+  /// conecta una sola vez para todo el lote. `printedCount` indica cuántos
+  /// productos (en orden) se imprimieron antes de un error.
+  static Future<Map<String, dynamic>> printLabels(
+    List<BatchLabelItem> items, {
+    void Function(int printed, int total)? onProgress,
+  }) async {
+    final type = await getPrinterType();
+
+    if (type == PrinterType.endpoint) {
+      final printerInfo = await getPrinterInfo();
+      final result = await ZebraPrintService.sendBatch(
+        printerInfo['address']!,
+        items,
+        onProgress: onProgress,
+      );
+      return {
+        ...result,
+        'canConfigure': !result['success'] && result['printedCount'] == 0,
+      };
+    }
+
+    final printerDevice = await getConfiguredPrinter();
+    if (printerDevice == null) {
+      return {
+        'success': false,
+        'message': 'No hay impresora configurada',
+        'canConfigure': true,
+        'printedCount': 0,
+      };
+    }
+
+    final connectResult = await connectToPrinter(printerDevice);
+    if (!connectResult['success']) {
+      return {
+        'success': false,
+        'message':
+            'No fue posible conectarse con la impresora. Verifique que esté encendida y disponible.',
+        'canConfigure': true,
+        'printedCount': 0,
+      };
+    }
+
+    var printed = 0;
+    try {
+      for (final item in items) {
+        final result = await printProductLabel(
+          item.product!,
+          item.front,
+          item.copies,
+        );
+        if (result['success'] != true) {
+          return {...result, 'canConfigure': false, 'printedCount': printed};
+        }
+        printed++;
+        onProgress?.call(printed, items.length);
+      }
+      return {
+        'success': true,
+        'message': 'Etiquetas impresas correctamente',
+        'printedCount': printed,
+      };
     } finally {
       await _safeDisconnect();
     }

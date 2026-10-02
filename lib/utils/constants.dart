@@ -26,6 +26,19 @@ class AppConstants {
   static const String printStatusEndpoint = '/status';
   static const int printServiceTimeout = 10; // seconds
 
+  // Impresión en lote
+  static const String prefsBatchLabels = 'batchLabels';
+  static const String prefsBatchInputMode = 'batchInputMode'; // camera | reader
+  static const int batchMaxFront = 10;
+  static const int batchMaxCopies = 10;
+  static const int batchZplChunkSize = 10; // productos por request al servicio
+  static const int batchRescanCooldownMs = 1500; // lectura sostenida de cámara
+
+  // Lector óptico sin sufijo Enter: se envía al terminar la ráfaga de teclas
+  static const int readerIdleMs = 150; // silencio que marca fin de lectura
+  static const int readerMaxMsPerChar = 50; // más lento = tecleo manual
+  static const int readerMinLength = 4;
+
   // Lista de sucursales disponibles
   static const List<String> availableSucursales = ['S11', 'S16', 'S06'];
 
