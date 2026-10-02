@@ -25,6 +25,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 ### 🔧 Cambiado
 - Toolchain Android actualizado para Flutter 3.47: Gradle 8.14, Android Gradle Plugin 8.11.1, Kotlin 2.2.20
 - `material_symbols_icons` 4.2960.0 (la versión anterior no compila con Flutter 3.47)
+- Etiqueta Zebra: precio más grande (alto 100, ancho 46) y más grueso (doble impresión desplazada 2 dots); precios de 4+ dígitos conservan el ancho anterior
 
 ## [1.2.0] - 2026-09-24
 

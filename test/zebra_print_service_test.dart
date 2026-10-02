@@ -77,6 +77,33 @@ void main() {
       expect(zpl, contains('^PQ2'));
     });
 
+    test('precio más grande y en "negrita" (doble impresión desplazada)', () {
+      final zpl = ZebraPrintService.buildProductLabelZpl(
+        _product(),
+        1,
+        1,
+        now: now,
+      );
+
+      expect(zpl, contains('^FO10,26^A0N,100,46^FH^FD\$ 18.50^FS'));
+      expect(zpl, contains('^FO12,26^A0N,100,46^FH^FD\$ 18.50^FS'));
+    });
+
+    test('precios de 4 dígitos conservan el ancho anterior', () {
+      final zpl = ZebraPrintService.buildProductLabelZpl(
+        Product.empty().copyWith(
+          itemName: 'PANTALLA',
+          codeBar: '7501055300075',
+          priceWithTax: 1234.5,
+        ),
+        1,
+        1,
+        now: now,
+      );
+
+      expect(zpl, contains('^A0N,100,40^FH^FD\$ 1234.50^FS'));
+    });
+
     test('divide la descripción en dos líneas respetando palabras', () {
       final zpl = ZebraPrintService.buildTestLabelZpl(now: now);
 
