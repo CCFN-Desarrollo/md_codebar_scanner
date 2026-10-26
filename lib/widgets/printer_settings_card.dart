@@ -1,3 +1,4 @@
+import '../models/service_printer_brand.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,6 +23,7 @@ class PrinterSettingsCardState extends State<PrinterSettingsCard> {
   final TextEditingController _urlController = TextEditingController();
 
   PrinterType _printerType = PrinterType.bluetooth;
+  ServicePrinterBrand _servicePrinterBrand = ServicePrinterBrand.zebra;
   String _selectedPrinterAddress = '';
   String _selectedPrinterName = '';
   bool _isLoadingPrinters = false;
@@ -49,6 +51,9 @@ class PrinterSettingsCardState extends State<PrinterSettingsCard> {
       _printerType = PrinterType.fromString(
         prefs.getString(AppConstants.prefsPrinterType),
       );
+      _servicePrinterBrand = ServicePrinterBrand.fromString(
+        prefs.getString(AppConstants.prefsServicePrinterBrand),
+      );
       _selectedPrinterAddress =
           prefs.getString(AppConstants.prefsSelectedPrinter) ?? '';
       _selectedPrinterName =
@@ -60,6 +65,10 @@ class PrinterSettingsCardState extends State<PrinterSettingsCard> {
 
   Future<void> save(SharedPreferences prefs) async {
     await prefs.setString(AppConstants.prefsPrinterType, _printerType.name);
+    await prefs.setString(
+      AppConstants.prefsServicePrinterBrand,
+      _servicePrinterBrand.name,
+    );
     await prefs.setString(
       AppConstants.prefsSelectedPrinter,
       _selectedPrinterAddress,
@@ -327,7 +336,7 @@ class PrinterSettingsCardState extends State<PrinterSettingsCard> {
       'Enviando etiqueta de prueba...',
       () => ZebraPrintService.sendZpl(
         _urlController.text,
-        ZebraPrintService.buildTestLabelZpl(),
+        ZebraPrintService.buildTestLabelZpl(brand: _servicePrinterBrand),
       ),
       '¡Prueba de impresión exitosa!',
     );
@@ -427,6 +436,34 @@ class PrinterSettingsCardState extends State<PrinterSettingsCard> {
 
   List<Widget> _buildServiceSection(bool busy) {
     return [
+      Text(
+        'Marca de la impresora',
+        style: TextStyle(fontWeight: FontWeight.w600),
+      ),
+      SizedBox(height: 8),
+      SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<ServicePrinterBrand>(
+          segments: ServicePrinterBrand.values
+              .map(
+                (brand) =>
+                    ButtonSegment(value: brand, label: Text(brand.label)),
+              )
+              .toList(),
+          selected: {_servicePrinterBrand},
+          onSelectionChanged: busy
+              ? null
+              : (selection) {
+                  setState(() => _servicePrinterBrand = selection.first);
+                },
+        ),
+      ),
+      SizedBox(height: 8),
+      _buildHelpText(
+        'Seleccione la marca conectada a la PC de esta tienda. '
+        'Se guarda en este dispositivo.',
+      ),
+      SizedBox(height: 16),
       TextFormField(
         controller: _urlController,
         enabled: !busy,

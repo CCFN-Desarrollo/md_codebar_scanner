@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:md_codebar_scanner/models/service_printer_brand.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -158,6 +159,35 @@ void main() {
     });
   });
 
+  test('BIXOLON uses a single price field in product and test labels', () {
+    final zebra = ZebraPrintService.buildProductLabelZpl(
+      _product(),
+      3,
+      2,
+      now: now,
+    );
+    final bixolon = ZebraPrintService.buildProductLabelZpl(
+      _product(),
+      3,
+      2,
+      now: now,
+      brand: ServicePrinterBrand.bixolon,
+    );
+    expect(
+      bixolon,
+      zebra.replaceAll(
+        r'^FO12,26^A0N,100,46^FH^FD$ 18.50^FS'
+            '\n',
+        '',
+      ),
+    );
+    expect(r'^FD$ 18.50^FS'.allMatches(bixolon), hasLength(1));
+    final sample = ZebraPrintService.buildTestLabelZpl(
+      brand: ServicePrinterBrand.bixolon,
+    );
+    expect(r'^FD$ 0.00^FS'.allMatches(sample), hasLength(1));
+  });
+
   group('sendZpl', () {
     test('envía JSON con el zpl y reporta éxito', () async {
       late http.Request captured;
@@ -299,6 +329,31 @@ void main() {
       expect(result['printedCount'], 10);
       expect(result['message'], 'Sin papel');
     });
+  });
+
+  test('BIXOLON profile reaches every product in a batch request', () async {
+    final items = List.generate(
+      2,
+      (i) => BatchLabelItem(
+        code: 'code$i',
+        product: _product(),
+        status: BatchItemStatus.ready,
+      ),
+    );
+    final client = MockClient((request) async {
+      final zpl = jsonDecode(request.body)['zpl'] as String;
+      expect('^FO10,26'.allMatches(zpl), hasLength(2));
+      expect(zpl, isNot(contains('^FO12,26')));
+      return http.Response(jsonEncode({'ok': true}), 200);
+    });
+    final result = await ZebraPrintService.sendBatch(
+      '192.168.0.10',
+      items,
+      brand: ServicePrinterBrand.bixolon,
+      client: client,
+    );
+    expect(result['success'], isTrue);
+    expect(result['printedCount'], 2);
   });
 
   group('checkStatus', () {

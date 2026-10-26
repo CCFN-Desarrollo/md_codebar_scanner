@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../models/batch_label_item.dart';
 import '../models/product_model.dart';
+import '../models/service_printer_brand.dart';
 import '../utils/constants.dart';
 
 /// Impresión de etiquetas ZPL por medio del Scanner Agent
@@ -67,6 +68,7 @@ class ZebraPrintService {
     int front,
     int copies, {
     DateTime? now,
+    ServicePrinterBrand brand = ServicePrinterBrand.zebra,
   }) {
     final date = DateFormat('dd/MM/yyyy').format(now ?? DateTime.now());
     final price = '\$ ${product.priceWithTax.toStringAsFixed(2)}';
@@ -77,19 +79,33 @@ class ZebraPrintService {
       barcode: product.codeBar,
       footer: 'F$front  f $date',
       copies: copies,
+      brand: brand,
     );
   }
 
   /// Un formato `^XA…^XZ` por producto; la Zebra los imprime en secuencia.
-  static String buildBatchZpl(List<BatchLabelItem> items, {DateTime? now}) {
+  static String buildBatchZpl(
+    List<BatchLabelItem> items, {
+    DateTime? now,
+    ServicePrinterBrand brand = ServicePrinterBrand.zebra,
+  }) {
     return items
         .map(
-          (i) => buildProductLabelZpl(i.product!, i.front, i.copies, now: now),
+          (i) => buildProductLabelZpl(
+            i.product!,
+            i.front,
+            i.copies,
+            now: now,
+            brand: brand,
+          ),
         )
         .join('\n');
   }
 
-  static String buildTestLabelZpl({DateTime? now}) {
+  static String buildTestLabelZpl({
+    DateTime? now,
+    ServicePrinterBrand brand = ServicePrinterBrand.zebra,
+  }) {
     final date = DateFormat('dd/MM/yyyy').format(now ?? DateTime.now());
     return _buildLabel(
       price: '\$ 0.00',
@@ -97,6 +113,7 @@ class ZebraPrintService {
       barcode: '1234567890',
       footer: 'F1  f $date',
       copies: 1,
+      brand: brand,
     );
   }
 
@@ -106,6 +123,7 @@ class ZebraPrintService {
     required String barcode,
     required String footer,
     required int copies,
+    required ServicePrinterBrand brand,
   }) {
     final buffer = StringBuffer();
     buffer.writeln('^XA');
@@ -120,7 +138,11 @@ class ZebraPrintService {
     final priceWidth = price.length <= priceShortMaxChars
         ? priceFontWidth
         : priceFontWidthLong;
-    for (final dx in [0, priceBoldOffset]) {
+    // BIXOLON usa una sola pasada para evitar texto hueco al superponer campos.
+    final offsets = brand == ServicePrinterBrand.bixolon
+        ? [0]
+        : [0, priceBoldOffset];
+    for (final dx in offsets) {
       buffer.writeln(
         '^FO${priceX + dx},$priceY'
         '^A0N,$priceFontHeight,$priceWidth^FH^FD${_escape(price)}^FS',
@@ -268,6 +290,7 @@ class ZebraPrintService {
     int chunkSize = AppConstants.batchZplChunkSize,
     http.Client? client,
     DateTime? now,
+    ServicePrinterBrand brand = ServicePrinterBrand.zebra,
   }) async {
     final httpClient = client ?? http.Client();
     var printed = 0;
@@ -277,7 +300,7 @@ class ZebraPrintService {
         final chunk = items.skip(start).take(chunkSize).toList();
         final result = await sendZpl(
           baseUrl,
-          buildBatchZpl(chunk, now: now),
+          buildBatchZpl(chunk, now: now, brand: brand),
           client: httpClient,
         );
 
