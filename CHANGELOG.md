@@ -7,6 +7,15 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [2.0.1] - 2026-10-26
+
+### Cambiado
+- Selector Zebra / BIXOLON en la configuración del servicio, guardado por dispositivo y aplicado a impresión individual, en lote y de prueba.
+- Frente máximo aumentado de 10 a 25 en impresión individual y en lote, incluido Aplicar a todos.
+
+### Corregido
+- El perfil BIXOLON imprime el precio una sola vez para evitar el efecto hueco por superposición; Zebra conserva la doble pasada.
+
 ## [2.0.0] - 2026-10-01
 
 ### 🎉 Agregado
