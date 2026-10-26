@@ -9,6 +9,7 @@ class AppConstants {
   static const String prefsSelectedPrinterName = 'selectedPrinterName';
   static const String prefsPrinterType = 'printerType'; // bluetooth | endpoint
   static const String prefsPrintServiceUrl = 'printServiceUrl';
+  static const String prefsServicePrinterBrand = 'servicePrinterBrand';
 
   // Configuración UI
   static const int notFoundDisplayDuration = 5; // seconds
@@ -29,7 +30,7 @@ class AppConstants {
   // Impresión en lote
   static const String prefsBatchLabels = 'batchLabels';
   static const String prefsBatchInputMode = 'batchInputMode'; // camera | reader
-  static const int batchMaxFront = 10;
+  static const int batchMaxFront = 25;
   static const int batchMaxCopies = 10;
   static const int batchZplChunkSize = 10; // productos por request al servicio
   static const int batchRescanCooldownMs = 1500; // lectura sostenida de cámara

@@ -1,3 +1,4 @@
+import '../models/service_printer_brand.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:developer';
@@ -393,6 +394,13 @@ CLS
     );
   }
 
+  static Future<ServicePrinterBrand> getServicePrinterBrand() async {
+    final prefs = await SharedPreferences.getInstance();
+    return ServicePrinterBrand.fromString(
+      prefs.getString(AppConstants.prefsServicePrinterBrand),
+    );
+  }
+
   static Future<bool> hasPrinterConfigured() async {
     final printerInfo = await getPrinterInfo();
     return printerInfo['address']!.isNotEmpty;
@@ -411,7 +419,12 @@ CLS
       final printerInfo = await getPrinterInfo();
       final result = await ZebraPrintService.sendZpl(
         printerInfo['address']!,
-        ZebraPrintService.buildProductLabelZpl(product, front, copies),
+        ZebraPrintService.buildProductLabelZpl(
+          product,
+          front,
+          copies,
+          brand: await getServicePrinterBrand(),
+        ),
       );
       return {...result, 'canConfigure': !result['success']};
     }
@@ -456,6 +469,7 @@ CLS
       final result = await ZebraPrintService.sendBatch(
         printerInfo['address']!,
         items,
+        brand: await getServicePrinterBrand(),
         onProgress: onProgress,
       );
       return {

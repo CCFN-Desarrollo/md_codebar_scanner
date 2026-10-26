@@ -1,3 +1,4 @@
+import '../utils/constants.dart';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:md_codebar_scanner/models/product_model.dart';
@@ -163,6 +164,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 });
                               },
                               label: 'FRENTE:',
+                              max: AppConstants.batchMaxFront.toDouble(),
+                              divisions: AppConstants.batchMaxFront - 1,
                             ),
                             CompactCustomSlider(
                               value: copies,
