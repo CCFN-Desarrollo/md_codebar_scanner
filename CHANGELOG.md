@@ -7,6 +7,12 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [2.0.2] - 2026-11-17
+
+### Cambiado
+- El título de la etiqueta usa ForeignName del artículo; si viene vacío, ItemName (misma regla que la app de escritorio para la UOM por defecto) (#20).
+- El detalle del producto y las pantallas de lote muestran el mismo título que se imprime.
+
 ## [2.0.1] - 2026-10-26
 
 ### Cambiado
