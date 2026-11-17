@@ -183,7 +183,7 @@ class _BatchPrintScreenState extends State<BatchPrintScreen> {
                   children: [
                     Text(
                       item.isReady
-                          ? product!.itemName
+                          ? product!.labelTitle
                           : isError
                           ? item.errorMessage ?? 'Error'
                           : 'Buscando...',

@@ -611,7 +611,7 @@ class _BatchScanScreenState extends State<BatchScanScreen> {
               children: [
                 Text(
                   switch (item.status) {
-                    BatchItemStatus.ready => item.product!.itemName,
+                    BatchItemStatus.ready => item.product!.labelTitle,
                     BatchItemStatus.loading => 'Buscando...',
                     BatchItemStatus.error => item.errorMessage ?? 'Error',
                   },
