@@ -1,0 +1,155 @@
+name: Release
+
+# Un tag vX.Y.Z sobre master compila, firma y publica el APK en el servidor de
+# auto-update (sap10). Ver docs/CD.md.
+#
+#   git checkout master && git pull
+#   git tag v2.0.2 && git push origin v2.0.2
+on:
+  push:
+    tags: ['v*.*.*']
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write # crear el GitHub Release
+
+env:
+  FLUTTER_VERSION: 3.47.5
+  SERVIDOR: ec2-user@13.52.132.84
+  # Huella publica del servidor: evita publicar en un equipo suplantado.
+  SERVIDOR_HOST_KEY: "13.52.132.84 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG92nlUmJD3dKhLFA1PJaW1VhNxIwwNHUuiIjDWacxbT"
+  # Certificado con el que estan firmados los APK ya instalados. Si cambia,
+  # Android rechaza la actualizacion y hay que desinstalar en cada equipo.
+  CERT_SHA256: 4de6728335ea54e7891f8fb156a21d27bc8b0f4ec0b77e0732ff3fbac939c290
+  URL_VERSION: http://crm.ccfnweb.com.mx/sap10/MD_CODEBAR_SCANNER_VERSION.text
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    # En Settings > Environments > production se puede exigir aprobacion manual.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validar tag
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PUBSPEC=$(grep -E '^version:' pubspec.yaml | tr -d '\r' | sed -E 's/^version:[[:space:]]*//')
+          VERSION="${PUBSPEC%%+*}"
+          BUILD="${PUBSPEC#*+}"
+          if [ "$TAG_VERSION" != "$VERSION" ]; then
+            echo "::error::El tag $GITHUB_REF_NAME no coincide con pubspec.yaml ($PUBSPEC)"
+            exit 1
+          fi
+          if [ "$BUILD" = "$PUBSPEC" ]; then
+            echo "::error::pubspec.yaml debe llevar numero de build (X.Y.Z+N)"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::El tag debe apuntar a un commit que ya este en master"
+            exit 1
+          fi
+          if ! grep -q "^## \[$VERSION\]" CHANGELOG.md; then
+            echo "::error::Falta la seccion ## [$VERSION] en CHANGELOG.md"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter test
+
+      # build.gradle.kts firma el release con la config de debug, que usa
+      # ~/.android/debug.keystore: se restaura el mismo de los APK publicados.
+      - name: Llave de firma
+        env:
+          KEYSTORE_B64: ${{ secrets.SCANNER_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          [ -n "$KEYSTORE_B64" ] || { echo "::error::Falta el secret SCANNER_KEYSTORE_B64"; exit 1; }
+          mkdir -p ~/.android
+          echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+
+      - run: flutter build apk --release
+
+      - name: Verificar firma
+        run: |
+          set -euo pipefail
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          DIGEST=$("$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk \
+            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          if [ "$DIGEST" != "$CERT_SHA256" ]; then
+            echo "::error::El APK quedo firmado con otro certificado ($DIGEST)"
+            exit 1
+          fi
+          echo "Firma correcta: $DIGEST"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: md_codebar_scanner-${{ env.VERSION }}
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      # La llave solo puede ejecutar ~/bin/md-scanner-recibir (apk | version).
+      # El APK se sube antes que la version para que ningun equipo descargue el anterior.
+      - name: Publicar en sap10
+        env:
+          DEPLOY_KEY: ${{ secrets.SCANNER_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          install -m 600 /dev/null "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$DEPLOY_KEY" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$SERVIDOR_HOST_KEY" > "$RUNNER_TEMP/known_hosts"
+          SSH="ssh -i $RUNNER_TEMP/deploy_key -o IdentitiesOnly=yes -o UserKnownHostsFile=$RUNNER_TEMP/known_hosts -o ConnectTimeout=20"
+          $SSH "$SERVIDOR" apk < build/app/outputs/flutter-apk/app-release.apk
+          printf '%s' "$VERSION" | $SSH "$SERVIDOR" version
+
+      - name: Comprobar version publicada
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5; do
+            PUBLICADA=$(curl -fsS -H 'Cache-Control: no-cache' "$URL_VERSION?ci=$GITHUB_RUN_ID" || true)
+            if [ "$PUBLICADA" = "$VERSION" ]; then
+              echo "Servidor en $PUBLICADA"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::El servidor responde '$PUBLICADA', se esperaba $VERSION"
+          exit 1
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          awk -v cab="## [$VERSION]" '
+            index($0, cab) == 1 { dentro = 1; next }
+            dentro && index($0, "## [") == 1 { exit }
+            dentro { print }
+          ' CHANGELOG.md > "$RUNNER_TEMP/notas.md"
+          cp build/app/outputs/flutter-apk/app-release.apk "$RUNNER_TEMP/md_codebar_scanner-$VERSION.apk"
+          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP/md_codebar_scanner-$VERSION.apk" \
+            --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notas.md" --verify-tag
+
+      - name: Borrar llaves
+        if: always()
+        run: rm -f "$RUNNER_TEMP/deploy_key" ~/.android/debug.keystore
