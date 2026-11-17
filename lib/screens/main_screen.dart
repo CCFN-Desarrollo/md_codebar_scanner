@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:md_codebar_scanner/screens/batch_scan_screen.dart';
 import 'package:md_codebar_scanner/screens/config_screen.dart';
 import 'package:md_codebar_scanner/screens/login_screen.dart';
 import 'package:md_codebar_scanner/utils/constants.dart';
@@ -428,6 +429,37 @@ class _MainScreenState extends State<MainScreen> {
                         foregroundColor: Colors.white,
                         elevation: 3,
                         shadowColor: AppColors.primary.withValues(alpha: 0.3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  // Re-etiquetación masiva
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BatchScanScreen(),
+                          ),
+                        );
+                      },
+                      icon: Icon(Icons.library_add, size: 24),
+                      label: Text(
+                        'Impresión en Lote',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(color: AppColors.primary, width: 2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
