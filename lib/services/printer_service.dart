@@ -254,7 +254,7 @@ class PrinterService {
     buffer.writeln(
       'TEXT 0,15,"3",0,1,3,"\$ ${product.priceWithTax.toStringAsFixed(2)}"',
     );
-    _addTwoLines(buffer, product.itemName, 140, 15, "3", 26);
+    _addTwoLines(buffer, product.labelTitle, 140, 15, "3", 26);
 
     buffer.writeln('BARCODE 220,88,"128",45,4,0,2,3,"${product.codeBar}"');
     String temp = "F$front  f $date";

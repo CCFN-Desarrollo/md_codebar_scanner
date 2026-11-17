@@ -127,6 +127,29 @@ void main() {
       expect(zpl, contains('^FD${'B' * 27}...^FS'));
     });
 
+    test('usa ForeignName como título cuando viene informado', () {
+      final zpl = ZebraPrintService.buildProductLabelZpl(
+        _product().copyWith(foreignName: 'REFRESCO COLA 600ML'),
+        1,
+        1,
+        now: now,
+      );
+
+      expect(zpl, contains('^FDREFRESCO COLA 600ML^FS'));
+      expect(zpl, isNot(contains('^FDCOCA COLA 600ML^FS')));
+    });
+
+    test('usa ItemName como título cuando ForeignName está vacío', () {
+      final zpl = ZebraPrintService.buildProductLabelZpl(
+        _product().copyWith(foreignName: '   '),
+        1,
+        1,
+        now: now,
+      );
+
+      expect(zpl, contains('^FDCOCA COLA 600ML^FS'));
+    });
+
     test('escapa caracteres de control ZPL', () {
       final zpl = ZebraPrintService.buildProductLabelZpl(
         _product(name: 'JUGO^LIMON~_2'),
