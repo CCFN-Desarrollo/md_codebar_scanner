@@ -37,30 +37,33 @@ jobs:
         with:
           fetch-depth: 0
 
+      # La version sale del tag (v2.0.3 -> 2.0.3); pubspec.yaml no se toca.
+      # El numero de build (versionCode de Android) es 100 + numero de ejecucion
+      # de este workflow: siempre crece y supera al de las versiones manuales (+3).
       - name: Validar tag
         run: |
           set -euo pipefail
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          PUBSPEC=$(grep -E '^version:' pubspec.yaml | tr -d '\r' | sed -E 's/^version:[[:space:]]*//')
-          VERSION="${PUBSPEC%%+*}"
-          BUILD="${PUBSPEC#*+}"
-          if [ "$TAG_VERSION" != "$VERSION" ]; then
-            echo "::error::El tag $GITHUB_REF_NAME no coincide con pubspec.yaml ($PUBSPEC)"
-            exit 1
-          fi
-          if [ "$BUILD" = "$PUBSPEC" ]; then
-            echo "::error::pubspec.yaml debe llevar numero de build (X.Y.Z+N)"
+          VERSION="${GITHUB_REF_NAME#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::El tag $GITHUB_REF_NAME debe tener formato vX.Y.Z"
             exit 1
           fi
           if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
             echo "::error::El tag debe apuntar a un commit que ya este en master"
             exit 1
           fi
-          if ! grep -q "^## \[$VERSION\]" CHANGELOG.md; then
-            echo "::error::Falta la seccion ## [$VERSION] en CHANGELOG.md"
-            exit 1
+          # La app solo instala versiones mayores a la que tiene: no publicar una igual o menor.
+          PUBLICADA=$(curl -fsS -H 'Cache-Control: no-cache' "$URL_VERSION?ci=$GITHUB_RUN_ID" | tr -d ' \r\n\t' || true)
+          if [ -n "$PUBLICADA" ]; then
+            MAYOR=$(printf '%s\n%s\n' "$PUBLICADA" "$VERSION" | sort -V | tail -1)
+            if [ "$VERSION" = "$PUBLICADA" ] || [ "$MAYOR" != "$VERSION" ]; then
+              echo "::error::El servidor ya tiene $PUBLICADA; el tag debe ser mayor"
+              exit 1
+            fi
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$((100 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          echo "Publicando $VERSION (build $((100 + GITHUB_RUN_NUMBER))); servidor en ${PUBLICADA:-?}"
 
       - uses: actions/setup-java@v4
         with:
@@ -88,7 +91,7 @@ jobs:
           mkdir -p ~/.android
           echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
 
-      - run: flutter build apk --release
+      - run: flutter build apk --release --build-name="$VERSION" --build-number="$BUILD_NUMBER"
 
       - name: Verificar firma
         run: |
@@ -141,14 +144,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          awk -v cab="## [$VERSION]" '
-            index($0, cab) == 1 { dentro = 1; next }
-            dentro && index($0, "## [") == 1 { exit }
-            dentro { print }
-          ' CHANGELOG.md > "$RUNNER_TEMP/notas.md"
+          # Notas generadas por GitHub con los PRs mergeados desde el tag anterior.
           cp build/app/outputs/flutter-apk/app-release.apk "$RUNNER_TEMP/md_codebar_scanner-$VERSION.apk"
           gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP/md_codebar_scanner-$VERSION.apk" \
-            --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notas.md" --verify-tag
+            --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
 
       - name: Borrar llaves
         if: always()

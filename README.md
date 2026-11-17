@@ -62,6 +62,19 @@ proyecto-flutter/
 ├── .gitignore
 └── README.md
 
+## 🚢 Publicar una versión
+
+Se publica creando un tag sobre `master`; GitHub Actions compila, firma y sube el APK al servidor de auto-update:
+
+```powershell
+git checkout master
+git pull
+git tag v2.0.3
+git push origin v2.0.3
+```
+
+La versión sale del tag (no hay que editar `pubspec.yaml`). Detalles, configuración inicial y cómo regresar de versión: [docs/CD.md](docs/CD.md).
+
 ## 🛠️ Comandos de Desarrollo
 
 ### 🔧 Desarrollo y Debug
