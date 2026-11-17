@@ -154,6 +154,12 @@ class Product {
     );
   }
 
+  /// Título para la etiqueta. Como la etiqueta se imprime con la UOM por
+  /// defecto, se usa ForeignName; si viene vacío, ItemName (misma regla que
+  /// la app de escritorio).
+  String get labelTitle =>
+      foreignName.trim().isNotEmpty ? foreignName.trim() : itemName;
+
   @override
   String toString() {
     return 'Product{itemCode: $itemCode, itemName: $itemName, price: $price}';

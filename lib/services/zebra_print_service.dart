@@ -75,7 +75,7 @@ class ZebraPrintService {
 
     return _buildLabel(
       price: price,
-      description: product.itemName,
+      description: product.labelTitle,
       barcode: product.codeBar,
       footer: 'F$front  f $date',
       copies: copies,
