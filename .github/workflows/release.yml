@@ -93,23 +93,30 @@ jobs:
 
       - run: flutter build apk --release --build-name="$VERSION" --build-number="$BUILD_NUMBER"
 
-      - name: Verificar firma
-        run: |
-          set -euo pipefail
-          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
-          DIGEST=$("$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk \
-            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
-          if [ "$DIGEST" != "$CERT_SHA256" ]; then
-            echo "::error::El APK quedo firmado con otro certificado ($DIGEST)"
-            exit 1
-          fi
-          echo "Firma correcta: $DIGEST"
-
       - uses: actions/upload-artifact@v4
         with:
           name: md_codebar_scanner-${{ env.VERSION }}
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
+
+      - name: Verificar firma
+        run: |
+          set -euo pipefail
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)"
+          echo "apksigner de $BT"
+          SALIDA=$("${BT}apksigner" verify --print-certs "$APK" 2>&1)
+          echo "$SALIDA"
+          # El formato de la linea cambia entre versiones de apksigner
+          # ("Signer #1 certificate..." / "Signer (minSdkVersion=...) certificate..."):
+          # se toman todas las huellas SHA-256 y deben ser todas la esperada.
+          HUELLAS=$(printf '%s\n' "$SALIDA" | grep -i 'certificate SHA-256 digest' \
+            | grep -oiE '[0-9a-f]{64}' | tr 'A-F' 'a-f' | sort -u)
+          if [ "$HUELLAS" != "$CERT_SHA256" ]; then
+            echo "::error::Firma inesperada. Esperada $CERT_SHA256, encontrada: ${HUELLAS:-ninguna}"
+            exit 1
+          fi
+          echo "Firma correcta: $HUELLAS"
 
       # La llave solo puede ejecutar ~/bin/md-scanner-recibir (apk | version).
       # El APK se sube antes que la version para que ningun equipo descargue el anterior.
