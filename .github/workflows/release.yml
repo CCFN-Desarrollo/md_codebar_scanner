@@ -80,20 +80,34 @@ jobs:
 
       - run: flutter test
 
-      # build.gradle.kts firma el release con la config de debug, que usa
-      # ~/.android/debug.keystore: se restaura el mismo de los APK publicados.
+      # android/app/build.gradle.kts firma con ANDROID_KEYSTORE_PATH si existe.
+      # Antes de compilar se comprueba que el keystore del secret sea el de los
+      # equipos instalados (si no, el error dice que hay que cambiar el secret).
       - name: Llave de firma
         env:
           KEYSTORE_B64: ${{ secrets.SCANNER_KEYSTORE_B64 }}
         run: |
           set -euo pipefail
           [ -n "$KEYSTORE_B64" ] || { echo "::error::Falta el secret SCANNER_KEYSTORE_B64"; exit 1; }
-          mkdir -p ~/.android
-          echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+          mkdir -p "$RUNNER_TEMP/keys"
+          KS="$RUNNER_TEMP/keys/release.keystore"
+          printf '%s' "$KEYSTORE_B64" | tr -d ' \r\n' | base64 -d > "$KS"
+          SALIDA=$(keytool -list -v -keystore "$KS" -storepass android -alias androiddebugkey 2>&1) || {
+            echo "$SALIDA"
+            echo "::error::El secret SCANNER_KEYSTORE_B64 no es un keystore valido (o no tiene el alias androiddebugkey / clave android)"
+            exit 1
+          }
+          HUELLA=$(printf '%s\n' "$SALIDA" | grep -oE 'SHA256: [0-9A-Fa-f:]+' | head -1 | cut -d' ' -f2 | tr -d ':' | tr 'A-F' 'a-f')
+          if [ "$HUELLA" != "$CERT_SHA256" ]; then
+            echo "::error::El keystore del secret SCANNER_KEYSTORE_B64 tiene la huella ${HUELLA:-desconocida}; se esperaba $CERT_SHA256. Cargar el debug.keystore correcto."
+            exit 1
+          fi
+          echo "Keystore correcto: $HUELLA"
+          echo "ANDROID_KEYSTORE_PATH=$KS" >> "$GITHUB_ENV"
 
       - run: flutter build apk --release --build-name="$VERSION" --build-number="$BUILD_NUMBER"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: md_codebar_scanner-${{ env.VERSION }}
           path: build/app/outputs/flutter-apk/app-release.apk
@@ -158,4 +172,4 @@ jobs:
 
       - name: Borrar llaves
         if: always()
-        run: rm -f "$RUNNER_TEMP/deploy_key" ~/.android/debug.keystore
+        run: rm -rf "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/keys"
