@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
+import '../widgets/app_bar_title.dart';
 import '../widgets/printer_settings_card.dart';
 
 class ConfigScreen extends StatefulWidget {
@@ -158,7 +159,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Configuración'),
+        title: AppBarTitle('Configuración', centered: true),
         centerTitle: true,
         elevation: 0,
         actions: [

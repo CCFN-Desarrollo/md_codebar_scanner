@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:convert';
+import '../services/app_info.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
 import '../services/auth_service.dart';
@@ -21,20 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _obscurePassword = true;
-  String _appVersion = ''; // Versión de la app
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAppVersion();
-  }
-
-  Future<void> _loadAppVersion() async {
-    final packageInfo = await PackageInfo.fromPlatform();
-    setState(() {
-      _appVersion = packageInfo.version;
-    });
-  }
 
   @override
   void dispose() {
@@ -466,9 +452,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Versión de la app
                   Text(
-                    _appVersion.isEmpty
-                        ? 'Cargando...'
-                        : 'Versión $_appVersion',
+                    AppInfo.version.isEmpty
+                        ? ''
+                        : 'Versión ${AppInfo.version}',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,

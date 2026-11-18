@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:md_codebar_scanner/screens/login_screen.dart';
 import 'package:md_codebar_scanner/screens/main_screen.dart';
+import 'package:md_codebar_scanner/services/app_info.dart';
 import 'package:md_codebar_scanner/services/app_update_service.dart';
 import 'package:md_codebar_scanner/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppInfo.load();
   runApp(const MyApp());
 }
 
