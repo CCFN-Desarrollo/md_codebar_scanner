@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'password_screen.dart';
 import 'scanner_screen.dart';
 import '../utils/colors.dart';
+import '../widgets/app_bar_title.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 class MainScreen extends StatefulWidget {
@@ -232,7 +233,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Escanner de código de barras'),
+        title: AppBarTitle('Escanner de código de barras'),
         actions: [
           /*IconButton(
             icon: Icon(Icons.bug_report),
